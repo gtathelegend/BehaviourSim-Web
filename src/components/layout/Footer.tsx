@@ -15,8 +15,8 @@ export function Footer() {
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="hover:text-foreground transition-colors">
-                  About
+                <Link href="/docs/getting-started" className="hover:text-foreground transition-colors">
+                  Introduction
                 </Link>
               </li>
               <li>
@@ -25,14 +25,20 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/research" className="hover:text-foreground transition-colors">
-                  Research
+                <Link href="/methodology" className="hover:text-foreground transition-colors">
+                  Methodology
                 </Link>
               </li>
               <li>
-                <Link href="/releases" className="hover:text-foreground transition-colors">
+                <a
+                  href="https://github.com/gtathelegend/BehaviourSim/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                >
                   Releases
-                </Link>
+                  <ExternalLink className="w-3 h-3 opacity-60" />
+                </a>
               </li>
             </ul>
           </div>
@@ -60,8 +66,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/examples" className="hover:text-foreground transition-colors">
-                  Examples
+                <Link href="/playground" className="hover:text-foreground transition-colors">
+                  Simulation Playground
                 </Link>
               </li>
               <li>
