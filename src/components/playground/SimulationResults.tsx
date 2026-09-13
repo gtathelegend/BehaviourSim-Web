@@ -1,12 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { DataPreviewTable } from "./DataPreviewTable";
 import { ExportButtons } from "./ExportButtons";
+import { ResultsOverview } from "./ResultsOverview";
+import { StateDistribution } from "./StateDistribution";
+import { TransitionAnalysis } from "./TransitionAnalysis";
+import { FeatureAnalysis } from "./FeatureAnalysis";
+import { LabelAnalysis } from "./LabelAnalysis";
+import {
+  calculateStateDistribution,
+  calculateTransitionMatrix,
+  detectSchema,
+} from "@/lib/analysis";
 import type { SimulationResponse, PresetResponse } from "@/lib/api/types";
 import {
   Sparkles,
@@ -20,6 +30,10 @@ import {
   RefreshCw,
   Copy,
   Check,
+  BarChart2,
+  GitFork,
+  Activity,
+  Sliders,
 } from "lucide-react";
 
 interface SimulationResultsProps {
@@ -35,6 +49,8 @@ interface SimulationResultsProps {
   onRetry: () => void;
 }
 
+type TabKey = "overview" | "states" | "transitions" | "features" | "labels" | "table" | "json";
+
 export function SimulationResults({
   simulation,
   isRunning,
@@ -42,8 +58,33 @@ export function SimulationResults({
   selectedPreset,
   onRetry,
 }: SimulationResultsProps) {
-  const [activeTab, setActiveTab] = useState<"table" | "json">("table");
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [copiedId, setCopiedId] = useState(false);
+
+  // Analysis pipelines computed via useMemo for high efficiency
+  const schema = useMemo(() => {
+    if (!simulation?.data) return null;
+    return detectSchema(simulation.data);
+  }, [simulation?.data]);
+
+  const stateDistribution = useMemo(() => {
+    if (!simulation?.data) return null;
+    return calculateStateDistribution(
+      simulation.data,
+      schema?.stateColumn || "state",
+      selectedPreset?.supported_states || []
+    );
+  }, [simulation?.data, schema?.stateColumn, selectedPreset?.supported_states]);
+
+  const transitions = useMemo(() => {
+    if (!simulation?.data) return null;
+    return calculateTransitionMatrix(
+      simulation.data,
+      schema?.stateColumn || "state",
+      schema?.sequenceColumn || "interaction_id",
+      selectedPreset?.supported_states
+    );
+  }, [simulation?.data, schema?.stateColumn, schema?.sequenceColumn, selectedPreset?.supported_states]);
 
   const handleCopySimulationId = async () => {
     if (!simulation?.simulation_id) return;
@@ -56,53 +97,135 @@ export function SimulationResults({
     }
   };
 
+  const hasLabels = (schema?.binaryLabels.length ?? 0) > 0;
+  const hasFeatures = (schema?.numericFeatures.length ?? 0) > 0;
+  const hasStates = (stateDistribution?.states.length ?? 0) > 0;
+  const hasTransitions = transitions !== null && transitions.totalTransitions > 0;
+
   return (
-    <Card className="border-border bg-surface shadow-xs min-h-[480px] flex flex-col">
+    <Card className="border-border bg-surface shadow-xs min-h-[520px] flex flex-col">
       <CardHeader className="pb-3 border-b border-border/60">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-accent" />
-            <CardTitle className="text-base font-semibold">Synthetic Results</CardTitle>
+            <CardTitle className="text-base font-semibold">Simulation Analysis &amp; Telemetry</CardTitle>
           </div>
 
           {simulation && (
             <div className="flex items-center gap-2">
-              {/* Tab Selector */}
-              <div className="flex items-center rounded border border-border bg-surface-elevated p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("table")}
-                  className={`px-2.5 py-1 rounded flex items-center gap-1 font-medium transition-colors ${
-                    activeTab === "table"
-                      ? "bg-surface text-foreground font-semibold shadow-xs"
-                      : "text-foreground-muted hover:text-foreground"
-                  }`}
-                >
-                  <Table className="w-3.5 h-3.5" />
-                  <span>Data Table</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("json")}
-                  className={`px-2.5 py-1 rounded flex items-center gap-1 font-medium transition-colors ${
-                    activeTab === "json"
-                      ? "bg-surface text-foreground font-semibold shadow-xs"
-                      : "text-foreground-muted hover:text-foreground"
-                  }`}
-                >
-                  <FileCode className="w-3.5 h-3.5" />
-                  <span>Raw JSON</span>
-                </button>
-              </div>
-
-              {/* Export Buttons */}
               <ExportButtons simulation={simulation} />
             </div>
           )}
         </div>
         <CardDescription className="text-xs text-foreground-muted">
-          Inspect generated sequential telemetry, state trajectories, and reproducibility metadata.
+          Interactive behavioral telemetry exploration, Markov transition models, and synthetic sequence statistics.
         </CardDescription>
+
+        {/* Tab Navigation Bar */}
+        {simulation && (
+          <div className="pt-3 overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 rounded-lg border border-border bg-surface-elevated/50 text-xs w-max">
+              <button
+                type="button"
+                onClick={() => setActiveTab("overview")}
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                  activeTab === "overview"
+                    ? "bg-surface text-foreground font-semibold shadow-xs"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-accent" />
+                <span>Overview</span>
+              </button>
+
+              {hasStates && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("states")}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                    activeTab === "states"
+                      ? "bg-surface text-foreground font-semibold shadow-xs"
+                      : "text-foreground-muted hover:text-foreground"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-accent" />
+                  <span>States</span>
+                </button>
+              )}
+
+              {hasTransitions && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("transitions")}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                    activeTab === "transitions"
+                      ? "bg-surface text-foreground font-semibold shadow-xs"
+                      : "text-foreground-muted hover:text-foreground"
+                  }`}
+                >
+                  <GitFork className="w-3.5 h-3.5 text-accent" />
+                  <span>Transitions</span>
+                </button>
+              )}
+
+              {hasFeatures && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("features")}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                    activeTab === "features"
+                      ? "bg-surface text-foreground font-semibold shadow-xs"
+                      : "text-foreground-muted hover:text-foreground"
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5 text-accent" />
+                  <span>Features</span>
+                </button>
+              )}
+
+              {hasLabels && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("labels")}
+                  className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                    activeTab === "labels"
+                      ? "bg-surface text-foreground font-semibold shadow-xs"
+                      : "text-foreground-muted hover:text-foreground"
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5 text-accent" />
+                  <span>Labels</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("table")}
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                  activeTab === "table"
+                    ? "bg-surface text-foreground font-semibold shadow-xs"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Data Table</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("json")}
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                  activeTab === "json"
+                    ? "bg-surface text-foreground font-semibold shadow-xs"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>Raw JSON</span>
+              </button>
+            </div>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="pt-4 flex-1 flex flex-col">
@@ -117,7 +240,7 @@ export function SimulationResults({
                 Generating synthetic behavioral data…
               </h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                Executing Markov transition dynamics, generating interaction sequences, and constructing telemetry records.
+                Simulating Markov trajectories, synthesizing continuous telemetry features, and compiling sample statistics.
               </p>
             </div>
             <div className="p-3 rounded bg-surface-elevated/40 border border-border text-[11px] font-mono text-foreground-muted text-left space-y-1">
@@ -125,8 +248,8 @@ export function SimulationResults({
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
                 <span>Simulating state trajectory...</span>
               </div>
-              <div className="text-foreground-muted/60 pl-3">Building feature distributions</div>
-              <div className="text-foreground-muted/60 pl-3">Validating schema compliance</div>
+              <div className="text-foreground-muted/60 pl-3">Assembling emission distributions</div>
+              <div className="text-foreground-muted/60 pl-3">Verifying reproducibility provenance</div>
             </div>
           </div>
         )}
@@ -192,7 +315,7 @@ export function SimulationResults({
             <div className="space-y-1.5">
               <h4 className="text-sm font-semibold text-foreground">Simulation Workbench Ready</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                Select a domain preset, configure interaction scale, and run the simulation to inspect generated telemetry records.
+                Select a domain preset, set interaction scale, and run a simulation to inspect state distributions, transition dynamics, and feature distributions.
               </p>
             </div>
 
@@ -220,10 +343,10 @@ export function SimulationResults({
         )}
 
         {/* 4. Populated Success State */}
-        {!isRunning && !error && simulation && (
+        {!isRunning && !error && simulation && schema && (
           <div className="space-y-4 flex-1 flex flex-col">
-            {/* Run Provenance Banner */}
-            <div className="p-3 rounded-lg border border-border bg-surface-elevated/40 flex flex-wrap items-center justify-between gap-3 text-xs">
+            {/* Quick Provenance Chip Bar */}
+            <div className="p-2.5 rounded-lg border border-border bg-surface-elevated/30 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="success" size="sm" className="gap-1">
                   <CheckCircle2 className="w-3 h-3" />
@@ -238,13 +361,13 @@ export function SimulationResults({
                 </Badge>
                 {simulation.seed !== null && (
                   <Badge variant="outline" size="sm" className="font-mono text-accent">
-                    Seed: {simulation.seed} (Reproducible)
+                    Seed: {simulation.seed} (Deterministic)
                   </Badge>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 font-mono text-[11px] text-foreground-muted">
-                <span>ID: {simulation.simulation_id.slice(0, 8)}...</span>
+              <div className="flex items-center gap-1.5 font-mono text-[11px] text-foreground-muted">
+                <span>Run: {simulation.simulation_id.slice(0, 8)}...</span>
                 <button
                   type="button"
                   onClick={handleCopySimulationId}
@@ -261,23 +384,58 @@ export function SimulationResults({
               </div>
             </div>
 
-            {/* Content View */}
-            {activeTab === "table" ? (
-              <div className="flex-1">
+            {/* Tab Panels */}
+            <div className="flex-1">
+              {activeTab === "overview" && (
+                <ResultsOverview
+                  simulation={simulation}
+                  selectedPreset={selectedPreset}
+                  schema={schema}
+                  observedStatesCount={stateDistribution?.states.filter((s) => s.count > 0).length || 0}
+                />
+              )}
+
+              {activeTab === "states" && stateDistribution && (
+                <StateDistribution
+                  distribution={stateDistribution}
+                  configuredStates={selectedPreset?.supported_states}
+                />
+              )}
+
+              {activeTab === "transitions" && (
+                <TransitionAnalysis transitions={transitions} />
+              )}
+
+              {activeTab === "features" && (
+                <FeatureAnalysis
+                  data={simulation.data}
+                  numericFeatures={schema.numericFeatures}
+                />
+              )}
+
+              {activeTab === "labels" && (
+                <LabelAnalysis
+                  data={simulation.data}
+                  binaryLabels={schema.binaryLabels}
+                  categoricalFeatures={schema.categoricalFeatures}
+                />
+              )}
+
+              {activeTab === "table" && (
                 <DataPreviewTable
                   data={simulation.data}
                   totalInteractions={simulation.num_interactions}
                 />
-              </div>
-            ) : (
-              <div className="flex-1">
+              )}
+
+              {activeTab === "json" && (
                 <CodeBlock
                   code={JSON.stringify(simulation, null, 2)}
                   language="json"
                   filename="simulation_response.json"
                 />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </CardContent>
