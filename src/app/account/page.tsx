@@ -7,6 +7,7 @@ import { Container } from "@/components/layout/Container";
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { UsageCard } from "@/components/account/UsageCard";
 import { ApiKeysCard } from "@/components/account/ApiKeysCard";
+import { SimulationHistoryCard } from "@/components/account/SimulationHistoryCard";
 import { LogOut, ShieldAlert, RefreshCw, UserCheck } from "lucide-react";
 
 export default function AccountPage() {
@@ -105,6 +106,9 @@ export default function AccountPage() {
 
           {/* Usage Section */}
           <UsageCard />
+
+          {/* Simulation History Section */}
+          <SimulationHistoryCard />
 
           {/* API Keys Section */}
           <ApiKeysCard />

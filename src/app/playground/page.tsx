@@ -6,9 +6,9 @@ import { QuotaIndicator } from "@/components/playground/QuotaIndicator";
 import { SimulationSettings } from "@/components/playground/SimulationSettings";
 import { SimulationResults } from "@/components/playground/SimulationResults";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { getPresets, createSimulation } from "@/lib/api/client";
-import { BehaviorSimAPIError } from "@/lib/api/errors";
-import type { PresetResponse, SimulationRequest, SimulationResponse } from "@/lib/api/types";
+import { getPresets } from "@/lib/api/client";
+import { useSimulationJob } from "@/lib/hooks/useSimulationJob";
+import type { PresetResponse, SimulationRequest } from "@/lib/api/types";
 
 // Standard canonical fallback presets matching the verified behaviorsim==1.0.1 engine
 const FALLBACK_PRESETS: PresetResponse[] = [
@@ -52,15 +52,17 @@ export default function PlaygroundPage() {
   const [selectedPreset, setSelectedPreset] = useState<PresetResponse>(FALLBACK_PRESETS[0]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(true);
 
-  const [simulation, setSimulation] = useState<SimulationResponse | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [lastRequest, setLastRequest] = useState<SimulationRequest | null>(null);
-  const [error, setError] = useState<{
-    message: string;
-    statusCode?: number;
-    requestId?: string | null;
-    details?: Record<string, unknown>;
-  } | null>(null);
+  // Durable async simulation job lifecycle hook
+  const {
+    jobStatus,
+    simulationId,
+    detail,
+    error,
+    isBusy,
+    submitJob,
+    checkStatus,
+    retry,
+  } = useSimulationJob();
 
   // Fetch presets from authoritative API catalog
   useEffect(() => {
@@ -84,41 +86,12 @@ export default function PlaygroundPage() {
     };
   }, []);
 
-  const handleRunSimulation = useCallback(async (request: SimulationRequest) => {
-    setIsRunning(true);
-    setError(null);
-    setLastRequest(request);
-
-    try {
-      const result = await createSimulation(request);
-      setSimulation(result);
-    } catch (err) {
-      if (err instanceof BehaviorSimAPIError) {
-        setError({
-          message: err.message,
-          statusCode: err.statusCode,
-          requestId: err.requestId,
-          details: err.details as Record<string, unknown>,
-        });
-      } else if (err instanceof Error) {
-        setError({
-          message: err.message,
-        });
-      } else {
-        setError({
-          message: "An unexpected error occurred while executing the simulation.",
-        });
-      }
-    } finally {
-      setIsRunning(false);
-    }
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    if (lastRequest) {
-      handleRunSimulation(lastRequest);
-    }
-  }, [lastRequest, handleRunSimulation]);
+  const handleRunSimulation = useCallback(
+    (request: SimulationRequest) => {
+      submitJob(request);
+    },
+    [submitJob]
+  );
 
   return (
     <div className="py-8 sm:py-12">
@@ -136,8 +109,7 @@ export default function PlaygroundPage() {
               BehaviorSim Playground
             </h1>
             <p className="text-xs sm:text-sm text-foreground-muted max-w-3xl leading-relaxed">
-              Configure domain parameters, trigger live sequence generation, and inspect synthetic behavioral telemetry.
-              The authoritative BehaviorSim engine validates quotas, transitions, and state models.
+              Configure domain parameters, submit asynchronous simulation jobs to durable background workers, and inspect synthetic behavioral telemetry in real time.
             </p>
           </div>
 
@@ -153,7 +125,8 @@ export default function PlaygroundPage() {
                 selectedPreset={selectedPreset}
                 onSelectPreset={setSelectedPreset}
                 onSubmit={handleRunSimulation}
-                isRunning={isRunning}
+                jobStatus={jobStatus}
+                isBusy={isBusy}
                 isAuthenticated={isAuthenticated}
                 isLoadingPresets={isLoadingPresets}
               />
@@ -162,11 +135,13 @@ export default function PlaygroundPage() {
             {/* Right: Results & Inspection (7 cols) */}
             <div className="lg:col-span-7">
               <SimulationResults
-                simulation={simulation}
-                isRunning={isRunning}
+                simulation={detail}
+                jobStatus={jobStatus}
+                simulationId={simulationId}
                 error={error}
                 selectedPreset={selectedPreset}
-                onRetry={handleRetry}
+                onRetry={retry}
+                onCheckStatus={() => checkStatus()}
               />
             </div>
           </div>

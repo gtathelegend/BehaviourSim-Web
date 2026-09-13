@@ -5,6 +5,10 @@ import type {
   PresetResponse,
   SimulationRequest,
   SimulationResponse,
+  SimulationPendingResponse,
+  SimulationDetailResponse,
+  SimulationHistoryResponse,
+  SimulationStatus,
   UsageResponse,
 } from "./types";
 
@@ -169,14 +173,72 @@ export async function getPreset(name: string): Promise<PresetResponse> {
 }
 
 /**
- * Authenticate and execute a simulation run, reserving usage quota and generating synthetic behavioral records.
+ * Authenticate and execute a simulation run.
+ * By default queues an asynchronous worker job returning HTTP 202 Accepted.
+ * When options.sync is true, executes synchronously returning HTTP 200 OK.
  */
 export async function createSimulation(
-  request: SimulationRequest
-): Promise<SimulationResponse> {
-  return apiClient<SimulationResponse>("/v1/simulations", {
-    method: "POST",
-    body: JSON.stringify(request),
+  request: SimulationRequest,
+  options: { sync: true }
+): Promise<SimulationResponse>;
+export async function createSimulation(
+  request: SimulationRequest,
+  options?: { sync?: false }
+): Promise<SimulationPendingResponse>;
+export async function createSimulation(
+  request: SimulationRequest,
+  options?: { sync?: boolean }
+): Promise<SimulationPendingResponse | SimulationResponse>;
+export async function createSimulation(
+  request: SimulationRequest,
+  options?: { sync?: boolean }
+): Promise<SimulationPendingResponse | SimulationResponse> {
+  const isSync = options?.sync === true;
+  return apiClient<SimulationPendingResponse | SimulationResponse>(
+    isSync ? "/v1/simulations?sync=true" : "/v1/simulations",
+    {
+      method: "POST",
+      body: JSON.stringify(request),
+    }
+  );
+}
+
+/**
+ * Retrieve execution details, reproducibility metadata, and generated results of a simulation owned by the caller.
+ */
+export async function getSimulation(
+  simulationId: string
+): Promise<SimulationDetailResponse> {
+  return apiClient<SimulationDetailResponse>(
+    `/v1/simulations/${encodeURIComponent(simulationId)}`
+  );
+}
+
+/**
+ * Retrieve paginated simulation history for the current authenticated user.
+ */
+export async function listSimulations(params?: {
+  page?: number;
+  page_size?: number;
+  preset?: string;
+  status?: SimulationStatus;
+}): Promise<SimulationHistoryResponse> {
+  return apiClient<SimulationHistoryResponse>("/v1/simulations", {
+    params: {
+      page: params?.page,
+      page_size: params?.page_size,
+      preset: params?.preset,
+      status: params?.status,
+    },
+  });
+}
+
+/**
+ * Permanently delete a persisted simulation run owned by the authenticated caller.
+ */
+export async function deleteSimulation(simulationId: string): Promise<void> {
+  await apiClient<void>(`/v1/simulations/${encodeURIComponent(simulationId)}`, {
+    method: "DELETE",
   });
 }
 

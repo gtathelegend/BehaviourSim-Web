@@ -17,7 +17,8 @@ import {
   calculateTransitionMatrix,
   detectSchema,
 } from "@/lib/analysis";
-import type { SimulationResponse, PresetResponse } from "@/lib/api/types";
+import type { SimulationResponse, SimulationDetailResponse, PresetResponse } from "@/lib/api/types";
+import type { JobStatus, JobError } from "@/lib/hooks/useSimulationJob";
 import {
   Sparkles,
   AlertCircle,
@@ -34,66 +35,89 @@ import {
   GitFork,
   Activity,
   Sliders,
+  RotateCw,
 } from "lucide-react";
 
 interface SimulationResultsProps {
-  simulation: SimulationResponse | null;
-  isRunning: boolean;
-  error: {
-    message: string;
-    statusCode?: number;
-    requestId?: string | null;
-    details?: Record<string, unknown>;
-  } | null;
+  simulation: SimulationDetailResponse | SimulationResponse | null;
+  jobStatus: JobStatus;
+  simulationId: string | null;
+  error: JobError | null;
   selectedPreset: PresetResponse | null;
   onRetry: () => void;
+  onCheckStatus?: () => void;
 }
 
 type TabKey = "overview" | "states" | "transitions" | "features" | "labels" | "table" | "json";
 
 export function SimulationResults({
   simulation,
-  isRunning,
+  jobStatus,
+  simulationId,
   error,
   selectedPreset,
   onRetry,
+  onCheckStatus,
 }: SimulationResultsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [copiedId, setCopiedId] = useState(false);
 
+  // Normalize simulation data for visualization components
+  const completedSimulation: SimulationResponse | null = useMemo(() => {
+    if (!simulation || !simulation.data || simulation.data.length === 0) {
+      return null;
+    }
+    return {
+      simulation_id: simulation.simulation_id,
+      preset: simulation.preset,
+      num_interactions: simulation.num_interactions,
+      status: simulation.status || "completed",
+      seed: simulation.seed ?? null,
+      data: simulation.data,
+      metadata: simulation.metadata || {
+        behaviorsim_version: "1.0.1",
+        api_version: "1.0.0",
+        compute_ms: 0,
+        reproducible: simulation.seed !== null,
+      },
+    };
+  }, [simulation]);
+
   // Analysis pipelines computed via useMemo for high efficiency
   const schema = useMemo(() => {
-    if (!simulation?.data) return null;
-    return detectSchema(simulation.data);
-  }, [simulation?.data]);
+    if (!completedSimulation?.data) return null;
+    return detectSchema(completedSimulation.data);
+  }, [completedSimulation?.data]);
 
   const stateDistribution = useMemo(() => {
-    if (!simulation?.data) return null;
+    if (!completedSimulation?.data) return null;
     return calculateStateDistribution(
-      simulation.data,
+      completedSimulation.data,
       schema?.stateColumn || "state",
       selectedPreset?.supported_states || []
     );
-  }, [simulation?.data, schema?.stateColumn, selectedPreset?.supported_states]);
+  }, [completedSimulation?.data, schema?.stateColumn, selectedPreset?.supported_states]);
 
   const transitions = useMemo(() => {
-    if (!simulation?.data) return null;
+    if (!completedSimulation?.data) return null;
     return calculateTransitionMatrix(
-      simulation.data,
+      completedSimulation.data,
       schema?.stateColumn || "state",
       schema?.sequenceColumn || "interaction_id",
       selectedPreset?.supported_states
     );
-  }, [simulation?.data, schema?.stateColumn, schema?.sequenceColumn, selectedPreset?.supported_states]);
+  }, [completedSimulation?.data, schema?.stateColumn, schema?.sequenceColumn, selectedPreset?.supported_states]);
+
+  const activeId = simulation?.simulation_id || simulationId;
 
   const handleCopySimulationId = async () => {
-    if (!simulation?.simulation_id) return;
+    if (!activeId) return;
     try {
-      await navigator.clipboard.writeText(simulation.simulation_id);
+      await navigator.clipboard.writeText(activeId);
       setCopiedId(true);
       setTimeout(() => setCopiedId(false), 2000);
     } catch {
-      // Ignore
+      // Ignore clipboard write failure
     }
   };
 
@@ -101,6 +125,14 @@ export function SimulationResults({
   const hasFeatures = (schema?.numericFeatures.length ?? 0) > 0;
   const hasStates = (stateDistribution?.states.length ?? 0) > 0;
   const hasTransitions = transitions !== null && transitions.totalTransitions > 0;
+
+  const isQueued = jobStatus === "queued";
+  const isRunning = jobStatus === "running";
+  const isSubmitting = jobStatus === "submitting";
+  const isProcessing = isSubmitting || isQueued || isRunning;
+  const isTimedOut = jobStatus === "timed_out";
+  const isFailed = jobStatus === "failed";
+  const isCompleted = jobStatus === "completed" || completedSimulation !== null;
 
   return (
     <Card className="border-border bg-surface shadow-xs min-h-[520px] flex flex-col">
@@ -111,9 +143,9 @@ export function SimulationResults({
             <CardTitle className="text-base font-semibold">Simulation Analysis &amp; Telemetry</CardTitle>
           </div>
 
-          {simulation && (
+          {completedSimulation && (
             <div className="flex items-center gap-2">
-              <ExportButtons simulation={simulation} />
+              <ExportButtons simulation={completedSimulation} />
             </div>
           )}
         </div>
@@ -121,8 +153,8 @@ export function SimulationResults({
           Interactive behavioral telemetry exploration, Markov transition models, and synthetic sequence statistics.
         </CardDescription>
 
-        {/* Tab Navigation Bar */}
-        {simulation && (
+        {/* Tab Navigation Bar (Active only when completed results exist) */}
+        {completedSimulation && (
           <div className="pt-3 overflow-x-auto">
             <div className="flex items-center gap-1 p-1 rounded-lg border border-border bg-surface-elevated/50 text-xs w-max">
               <button
@@ -229,33 +261,141 @@ export function SimulationResults({
       </CardHeader>
 
       <CardContent className="pt-4 flex-1 flex flex-col">
-        {/* 1. Loading State */}
+        {/* 1. Submitting State */}
+        {isSubmitting && (
+          <div className="my-auto py-16 text-center space-y-4 max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-accent">
+              <RefreshCw className="w-6 h-6 animate-spin text-accent" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-foreground">Submitting Simulation Request</h4>
+              <p className="text-xs text-foreground-muted leading-relaxed">
+                Allocating interaction quota and creating durable simulation record...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Queued / Pending State */}
+        {isQueued && (
+          <div className="my-auto py-16 text-center space-y-4 max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-accent">
+              <Clock className="w-6 h-6 animate-pulse text-accent" />
+            </div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated border border-border text-[11px] font-mono text-foreground-muted mb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <span>STATUS: QUEUED</span>
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">Simulation queued</h4>
+              <p className="text-xs text-foreground-muted leading-relaxed">
+                Job accepted by the API and queued for worker execution. Polling for worker claim...
+              </p>
+            </div>
+
+            {activeId && (
+              <div className="p-2.5 rounded bg-surface-elevated/40 border border-border text-[11px] font-mono text-foreground-muted flex items-center justify-between gap-2">
+                <span className="truncate">Job ID: {activeId}</span>
+                <button
+                  type="button"
+                  onClick={handleCopySimulationId}
+                  className="p-1 rounded hover:text-foreground hover:bg-surface-elevated transition-colors shrink-0"
+                  title="Copy Simulation ID"
+                  aria-label="Copy Simulation ID"
+                >
+                  {copiedId ? <Check className="w-3 h-3 text-semantic-success" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. Running State */}
         {isRunning && (
           <div className="my-auto py-16 text-center space-y-4 max-w-sm mx-auto">
             <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-accent">
               <Sparkles className="w-6 h-6 animate-spin text-accent" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-foreground">
-                Generating synthetic behavioral data…
-              </h4>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated border border-border text-[11px] font-mono text-foreground-muted mb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-spin" />
+                <span>STATUS: RUNNING</span>
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">Simulation running</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                Simulating Markov trajectories, synthesizing continuous telemetry features, and compiling sample statistics.
+                Durable worker claimed the job. Executing Markov trajectory and synthesizing continuous telemetry...
               </p>
             </div>
-            <div className="p-3 rounded bg-surface-elevated/40 border border-border text-[11px] font-mono text-foreground-muted text-left space-y-1">
-              <div className="flex items-center gap-1.5 text-accent">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-                <span>Simulating state trajectory...</span>
+
+            {activeId && (
+              <div className="p-2.5 rounded bg-surface-elevated/40 border border-border text-[11px] font-mono text-foreground-muted flex items-center justify-between gap-2">
+                <span className="truncate">Job ID: {activeId}</span>
+                <button
+                  type="button"
+                  onClick={handleCopySimulationId}
+                  className="p-1 rounded hover:text-foreground hover:bg-surface-elevated transition-colors shrink-0"
+                  title="Copy Simulation ID"
+                  aria-label="Copy Simulation ID"
+                >
+                  {copiedId ? <Check className="w-3 h-3 text-semantic-success" /> : <Copy className="w-3 h-3" />}
+                </button>
               </div>
-              <div className="text-foreground-muted/60 pl-3">Assembling emission distributions</div>
-              <div className="text-foreground-muted/60 pl-3">Verifying reproducibility provenance</div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Client Timeout / Processing State */}
+        {isTimedOut && (
+          <div className="my-auto py-10 max-w-md mx-auto w-full space-y-4">
+            <div className="p-4 rounded-lg border border-border bg-surface-elevated text-xs space-y-3">
+              <div className="flex items-start gap-2.5">
+                <Clock className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                <div className="space-y-1 flex-1">
+                  <h4 className="font-semibold text-sm text-foreground">Simulation Still Processing</h4>
+                  <p className="text-foreground-muted leading-relaxed">
+                    {error?.message ||
+                      "Client polling timed out, but your simulation job is still safely processing on the server."}
+                  </p>
+                  {activeId && (
+                    <div className="pt-1 font-mono text-[11px] text-foreground-muted flex items-center gap-1.5">
+                      <span>Job ID: {activeId}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopySimulationId}
+                        className="p-0.5 rounded hover:text-foreground transition-colors"
+                        title="Copy Simulation ID"
+                      >
+                        {copiedId ? <Check className="w-3 h-3 text-semantic-success" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                <Link
+                  href="/account"
+                  className="px-3 py-1.5 rounded bg-surface-elevated text-foreground hover:bg-surface-muted border border-border text-xs font-medium transition-colors"
+                >
+                  Check Account History
+                </Link>
+                {onCheckStatus && (
+                  <button
+                    type="button"
+                    onClick={onCheckStatus}
+                    className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+                  >
+                    <RotateCw className="w-3 h-3" />
+                    <span>Check Status</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* 2. Error State */}
-        {!isRunning && error && (
+        {/* 5. Safe Error State */}
+        {isFailed && error && (
           <div className="my-auto py-10 max-w-md mx-auto w-full space-y-4">
             <div className="p-4 rounded-lg border border-semantic-error-border bg-semantic-error-bg text-semantic-error text-xs space-y-3">
               <div className="flex items-start gap-2.5">
@@ -263,13 +403,25 @@ export function SimulationResults({
                 <div className="space-y-1 flex-1">
                   <h4 className="font-semibold text-sm">Simulation Execution Failed</h4>
                   <p className="text-foreground leading-relaxed">{error.message}</p>
-                  {error.statusCode && (
-                    <span className="inline-block font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface-elevated text-foreground-muted border border-border mt-1">
-                      HTTP {error.statusCode}
-                    </span>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {error.statusCode && (
+                      <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface-elevated text-foreground-muted border border-border">
+                        HTTP {error.statusCode}
+                      </span>
+                    )}
+                    {error.errorCode && (
+                      <span className="font-mono text-[10px] uppercase px-1.5 py-0.5 rounded bg-surface-elevated text-foreground-muted border border-border">
+                        Code: {error.errorCode}
+                      </span>
+                    )}
+                  </div>
+                  {error.simulationId && (
+                    <p className="font-mono text-[10px] text-foreground-muted mt-1">
+                      Simulation ID: {error.simulationId}
+                    </p>
                   )}
                   {error.requestId && (
-                    <p className="font-mono text-[10px] text-foreground-muted mt-1">
+                    <p className="font-mono text-[10px] text-foreground-muted mt-0.5">
                       Request ID: {error.requestId}
                     </p>
                   )}
@@ -295,10 +447,10 @@ export function SimulationResults({
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="px-3 py-1.5 rounded bg-surface-elevated hover:bg-surface-muted text-foreground border border-border text-xs font-medium transition-colors inline-flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded bg-surface-elevated hover:bg-surface-muted text-foreground border border-border text-xs font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw className="w-3 h-3" />
-                    <span>Try Again</span>
+                    <span>Try Again (New Job)</span>
                   </button>
                 )}
               </div>
@@ -306,8 +458,8 @@ export function SimulationResults({
           </div>
         )}
 
-        {/* 3. Empty State (Before Run) */}
-        {!isRunning && !error && !simulation && (
+        {/* 6. Empty State (Before Any Run) */}
+        {!isProcessing && !isFailed && !isTimedOut && !completedSimulation && (
           <div className="my-auto py-12 text-center space-y-4 max-w-md mx-auto">
             <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-foreground-muted">
               <Terminal className="w-6 h-6 text-foreground-muted/60" />
@@ -315,7 +467,7 @@ export function SimulationResults({
             <div className="space-y-1.5">
               <h4 className="text-sm font-semibold text-foreground">Simulation Workbench Ready</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                Select a domain preset, set interaction scale, and run a simulation to inspect state distributions, transition dynamics, and feature distributions.
+                Select a domain preset, configure interaction scale, and run a simulation to inspect state distributions, transition dynamics, and feature distributions.
               </p>
             </div>
 
@@ -342,32 +494,32 @@ export function SimulationResults({
           </div>
         )}
 
-        {/* 4. Populated Success State */}
-        {!isRunning && !error && simulation && schema && (
+        {/* 7. Populated Success State */}
+        {!isProcessing && !isFailed && !isTimedOut && completedSimulation && schema && (
           <div className="space-y-4 flex-1 flex flex-col">
             {/* Quick Provenance Chip Bar */}
             <div className="p-2.5 rounded-lg border border-border bg-surface-elevated/30 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="success" size="sm" className="gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>{simulation.num_interactions.toLocaleString()} interactions</span>
+                  <span>{completedSimulation.num_interactions.toLocaleString()} interactions</span>
                 </Badge>
                 <Badge variant="default" size="sm" className="font-mono uppercase">
-                  {simulation.preset}
+                  {completedSimulation.preset}
                 </Badge>
                 <Badge variant="neutral" size="sm" className="gap-1 font-mono">
                   <Clock className="w-3 h-3" />
-                  <span>{simulation.metadata.compute_ms}ms</span>
+                  <span>{completedSimulation.metadata.compute_ms}ms</span>
                 </Badge>
-                {simulation.seed !== null && (
+                {completedSimulation.seed !== null && (
                   <Badge variant="outline" size="sm" className="font-mono text-accent">
-                    Seed: {simulation.seed} (Deterministic)
+                    Seed: {completedSimulation.seed} (Deterministic)
                   </Badge>
                 )}
               </div>
 
               <div className="flex items-center gap-1.5 font-mono text-[11px] text-foreground-muted">
-                <span>Run: {simulation.simulation_id.slice(0, 8)}...</span>
+                <span>Run: {completedSimulation.simulation_id.slice(0, 8)}...</span>
                 <button
                   type="button"
                   onClick={handleCopySimulationId}
@@ -388,7 +540,7 @@ export function SimulationResults({
             <div className="flex-1">
               {activeTab === "overview" && (
                 <ResultsOverview
-                  simulation={simulation}
+                  simulation={completedSimulation}
                   selectedPreset={selectedPreset}
                   schema={schema}
                   observedStatesCount={stateDistribution?.states.filter((s) => s.count > 0).length || 0}
@@ -408,14 +560,14 @@ export function SimulationResults({
 
               {activeTab === "features" && (
                 <FeatureAnalysis
-                  data={simulation.data}
+                  data={completedSimulation.data}
                   numericFeatures={schema.numericFeatures}
                 />
               )}
 
               {activeTab === "labels" && (
                 <LabelAnalysis
-                  data={simulation.data}
+                  data={completedSimulation.data}
                   binaryLabels={schema.binaryLabels}
                   categoricalFeatures={schema.categoricalFeatures}
                 />
@@ -423,14 +575,14 @@ export function SimulationResults({
 
               {activeTab === "table" && (
                 <DataPreviewTable
-                  data={simulation.data}
-                  totalInteractions={simulation.num_interactions}
+                  data={completedSimulation.data}
+                  totalInteractions={completedSimulation.num_interactions}
                 />
               )}
 
               {activeTab === "json" && (
                 <CodeBlock
-                  code={JSON.stringify(simulation, null, 2)}
+                  code={JSON.stringify(completedSimulation, null, 2)}
                   language="json"
                   filename="simulation_response.json"
                 />

@@ -101,10 +101,83 @@ export interface SimulationMetadata {
   reproducible: boolean;
 }
 
+export type SimulationStatus = "pending" | "running" | "completed" | "failed";
+
+/**
+ * Accepted simulation job response queued for asynchronous worker processing (HTTP 202 Accepted).
+ */
+export interface SimulationPendingResponse {
+  simulation_id: string;
+  preset: string;
+  num_interactions: number;
+  status: "pending";
+  seed: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Durable simulation record detail response schema from GET /v1/simulations/{id}.
+ */
+export interface SimulationDetailResponse {
+  simulation_id: string;
+  preset: string;
+  num_interactions: number;
+  seed: number | null;
+  profile?: string | null;
+  initial_state?: string | null;
+  status: SimulationStatus;
+  data?: Record<string, unknown>[] | null;
+  metadata?: SimulationMetadata | null;
+  error_code?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string | null;
+}
+
+/**
+ * Lightweight simulation metadata item for history listings (excludes interaction data).
+ */
+export interface SimulationHistoryItem {
+  simulation_id: string;
+  preset: string;
+  num_interactions: number;
+  seed: number | null;
+  profile?: string | null;
+  initial_state?: string | null;
+  status: SimulationStatus;
+  compute_ms?: number | null;
+  reproducible: boolean;
+  behaviorsim_version: string;
+  api_version: string;
+  error_code?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  updated_at?: string | null;
+}
+
+/**
+ * Bounded paginated simulation history response from GET /v1/simulations.
+ */
+export interface SimulationHistoryResponse {
+  items: SimulationHistoryItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_next: boolean;
+}
+
+/**
+ * Synchronous simulation response containing generated telemetry and run provenance (compatible with completed detail).
+ */
 export interface SimulationResponse {
   simulation_id: string;
   preset: string;
   num_interactions: number;
+  status?: string;
   seed: number | null;
   data: Record<string, unknown>[];
   metadata: SimulationMetadata;
