@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ExternalLink } from "lucide-react";
+import { Menu, X, ExternalLink, User } from "lucide-react";
 import { Container } from "./Container";
 import { Button } from "../ui/Button";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Docs", href: "/docs" },
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 ];
 
 export function Header() {
+  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -90,9 +92,16 @@ export function Header() {
               <span>GitHub</span>
               <ExternalLink className="w-3 h-3 opacity-60 ml-0.5" />
             </Button>
-            <Button variant="primary" size="sm" href="/login">
-              Sign In
-            </Button>
+            {isAuthenticated ? (
+              <Button variant="secondary" size="sm" href="/account" className="gap-1.5">
+                <User className="w-3.5 h-3.5 text-accent" />
+                <span>Account</span>
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" href="/login">
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Toggle Button */}
@@ -141,9 +150,16 @@ export function Header() {
             >
               GitHub <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
             </Button>
-            <Button variant="primary" size="sm" className="w-full justify-center" href="/login">
-              Sign In
-            </Button>
+            {isAuthenticated ? (
+              <Button variant="secondary" size="sm" className="w-full justify-center gap-1.5" href="/account">
+                <User className="w-3.5 h-3.5 text-accent" />
+                <span>Account</span>
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" className="w-full justify-center" href="/login">
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 /**
- * API Type Definitions matching BehaviorSim API backend schemas
+ * API Type Definitions matching the authoritative BehaviorSim API schemas.
  */
 
 export interface ApiErrorDetail {
@@ -18,47 +18,61 @@ export interface ApiErrorPayload {
   };
 }
 
-export interface UserAccount {
+export interface AccountResponse {
   id: string;
   email: string;
-  name?: string | null;
-  avatar_url?: string | null;
+  display_name?: string | null;
   is_active: boolean;
-  tier: "free" | "researcher" | "enterprise";
   created_at: string;
+  authentication_methods: string[];
+  plan: string;
 }
 
-export interface UsageMetrics {
-  user_id: string;
-  period_start: string;
-  period_end: string;
-  total_requests: number;
-  max_requests: number;
-  remaining_requests: number;
-  quota_reset_at: string;
+export interface PlanSummary {
+  name: string;
+  monthly_requests: number;
+  monthly_interactions: number;
+  max_interactions_per_request: number;
+  requests_per_minute: number;
+  max_concurrent_simulations: number;
 }
 
-export interface ApiKeyItem {
+export interface PeriodSummary {
+  start: string;
+  end: string;
+}
+
+export interface UsageMetricCounts {
+  requests: number;
+  interactions: number;
+}
+
+export interface UsageResponse {
+  plan: PlanSummary;
+  period: PeriodSummary;
+  usage: UsageMetricCounts;
+  remaining: UsageMetricCounts;
+}
+
+export interface APIKeyMetadataResponse {
   id: string;
   name: string;
-  prefix: string;
+  key_prefix: string;
+  is_active: boolean;
   created_at: string;
   last_used_at?: string | null;
-  is_active: boolean;
+  revoked_at?: string | null;
 }
 
-export interface ApiKeyCreatedResponse {
+export interface APIKeyCreateResult {
   id: string;
   name: string;
-  prefix: string;
-  token: string; // Only shown once at creation time
+  key: string; // Raw secret, returned only once upon creation
+  key_prefix: string;
   created_at: string;
 }
 
-export interface PresetSummary {
+export interface RevokeAPIKeyResponse {
+  status: string;
   id: string;
-  name: string;
-  description: string;
-  domain: string;
-  states_count: number;
 }

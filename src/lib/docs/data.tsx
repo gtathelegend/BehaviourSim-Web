@@ -1051,6 +1051,19 @@ distributions:
           with BehaviorSim without user intervention.
         </p>
 
+        <div className="p-4 rounded border border-border bg-surface-elevated/40 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="font-semibold text-foreground block">Need an API key?</span>
+            <span className="text-foreground-muted">Generate, inspect, and revoke developer keys directly in your account dashboard.</span>
+          </div>
+          <Link
+            href="/account"
+            className="px-3 py-1.5 rounded bg-primary text-primary-foreground font-medium text-xs hover:opacity-90 transition-opacity shrink-0 text-center"
+          >
+            Manage API Keys &rarr;
+          </Link>
+        </div>
+
         <h2 id="api-key-format" className="text-xl font-semibold tracking-tight text-foreground pt-4">
           API Key Format
         </h2>
