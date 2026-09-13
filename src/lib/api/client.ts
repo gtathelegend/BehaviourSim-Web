@@ -8,6 +8,15 @@ export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
+export interface ExplorerResult<T = unknown> {
+  status: number;
+  statusText: string;
+  durationMs: number;
+  requestId: string | null;
+  data: T;
+  isError: boolean;
+}
+
 /**
  * Base fetch wrapper with credentials, error envelope extraction, and request correlation.
  */
@@ -64,4 +73,76 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   return response.json() as Promise<T>;
+}
+
+/**
+ * Whitelist of safe, public, read-only endpoints allowed in the interactive explorer.
+ */
+export const EXPLORER_WHITELIST = [
+  { path: "/health", method: "GET", description: "Liveness probe" },
+  { path: "/ready", method: "GET", description: "Readiness probe & database connectivity" },
+  { path: "/v1/presets", method: "GET", description: "Catalog of simulation presets" },
+  { path: "/v1/presets/{preset}", method: "GET", description: "Details for a specific preset" },
+] as const;
+
+/**
+ * Safely execute an explorer request against the whitelisted public endpoints only.
+ */
+export async function runExplorerRequest(
+  endpointPath: string,
+  paramValue?: string
+): Promise<ExplorerResult> {
+  // Normalize and validate that the requested endpoint is on the strict whitelist
+  let targetPath = endpointPath;
+  if (endpointPath === "/v1/presets/{preset}") {
+    const safeParam = encodeURIComponent((paramValue || "education").trim());
+    targetPath = `/v1/presets/${safeParam}`;
+  } else if (!["/health", "/ready", "/v1/presets"].includes(endpointPath)) {
+    throw new Error(`Endpoint '${endpointPath}' is not in the public explorer whitelist.`);
+  }
+
+  const fullUrl = `${API_BASE_URL}${targetPath}`;
+  const startTime = performance.now();
+
+  try {
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const durationMs = Math.round(performance.now() - startTime);
+    const requestId = response.headers.get("X-Request-ID") || response.headers.get("x-request-id");
+
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      data = { message: await response.text() };
+    }
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      durationMs,
+      requestId,
+      data,
+      isError: !response.ok,
+    };
+  } catch (err: unknown) {
+    const durationMs = Math.round(performance.now() - startTime);
+    return {
+      status: 0,
+      statusText: "Network Error",
+      durationMs,
+      requestId: null,
+      data: {
+        error: {
+          message: err instanceof Error ? err.message : "Failed to connect to BehaviorSim API",
+        },
+      },
+      isError: true,
+    };
+  }
 }

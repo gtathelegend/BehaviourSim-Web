@@ -3,7 +3,8 @@ import Link from "next/link";
 import { DocPage } from "./types";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Badge } from "@/components/ui/Badge";
-import { AlertCircle, Terminal, CheckCircle2, ShieldAlert } from "lucide-react";
+import { ApiEndpointCard } from "@/components/docs/ApiEndpointCard";
+import { AlertCircle, Terminal, CheckCircle2, ShieldAlert, Key, Clock, ShieldCheck } from "lucide-react";
 
 export const DOC_PAGES: DocPage[] = [
   // 1. Getting Started - Introduction
@@ -58,7 +59,7 @@ export const DOC_PAGES: DocPage[] = [
           The framework decouples generation into two key components:
         </p>
         <ol className="list-decimal pl-5 space-y-1.5">
-          <li><strong>State Machine & Transition Rules:</strong> Manages state migration, transition probabilities, and temporal inertia.</li>
+          <li><strong>State Machine &amp; Transition Rules:</strong> Manages state migration, transition probabilities, and temporal inertia.</li>
           <li><strong>Feature Emission Generator:</strong> Samples continuous and discrete metrics conditionally on active states from 8 supported parametric distributions.</li>
         </ol>
 
@@ -373,7 +374,7 @@ idle_state = State(
         />
 
         <h2 id="state-lifecycle" className="text-xl font-semibold tracking-tight text-foreground pt-4">
-          State Lifecycle & Absorbing States
+          State Lifecycle &amp; Absorbing States
         </h2>
         <p>
           States can be transient or absorbing:
@@ -459,7 +460,7 @@ sim = Simulator(states=states, transition_matrix=matrix)`}
         </p>
 
         <h2 id="supported-operators" className="text-xl font-semibold tracking-tight text-foreground pt-4">
-          Supported Operators & Aggregations
+          Supported Operators &amp; Aggregations
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-3.5 rounded border border-border bg-surface space-y-1">
@@ -614,7 +615,7 @@ df.to_json("traces.json", orient="records")`}
         <div className="p-4 rounded border border-semantic-warning-border bg-semantic-warning-bg text-xs text-foreground-muted space-y-1.5">
           <div className="font-semibold text-semantic-warning flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" />
-            <span>Scope & Validity Notice</span>
+            <span>Scope &amp; Validity Notice</span>
           </div>
           <p>
             The built-in presets are calibrated scenario generators designed for software testing and machine learning
@@ -632,7 +633,7 @@ df.to_json("traces.json", orient="records")`}
     path: "/docs/interfaces/python",
     title: "Python API Reference",
     description: "Complete public Python API reference for behaviorsim==1.0.1.",
-    section: "Interfaces",
+    section: "Python Library",
     version: "1.0.1",
     headings: [
       { id: "simulator-class", title: "Simulator", level: 2 },
@@ -740,7 +741,7 @@ print(presets_list)
     path: "/docs/interfaces/cli",
     title: "Command-Line Interface (CLI)",
     description: "Using the behaviorsim command-line tool for validation and batch simulation.",
-    section: "Interfaces",
+    section: "Python Library",
     version: "1.0.1",
     headings: [
       { id: "cli-overview", title: "Overview", level: 2 },
@@ -842,6 +843,789 @@ distributions:
           language="yaml"
           filename="simulation.yaml"
         />
+      </div>
+    ),
+  },
+
+  // 11. REST API - Overview
+  {
+    slug: ["interfaces", "rest"],
+    path: "/docs/interfaces/rest",
+    title: "REST API Overview & Base URL",
+    description: "Architectural overview, base URL, versioning, and standards for the BehaviorSim cloud REST API.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "production-base-url", title: "Base URL & HTTPS", level: 2 },
+      { id: "versioning", title: "API Versioning (/v1)", level: 2 },
+      { id: "request-correlation-ids", title: "Request Correlation IDs", level: 2 },
+      { id: "format-and-envelopes", title: "Format & Envelopes", level: 2 },
+      { id: "interactive-testing", title: "Interactive Testing", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          The BehaviorSim Cloud REST API provides hosted access to simulation execution, registered preset catalogs,
+          usage quotas, and developer API key lifecycle management.
+        </p>
+
+        <h2 id="production-base-url" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Base URL &amp; HTTPS
+        </h2>
+        <p>All REST interactions occur exclusively over HTTPS:</p>
+        <div className="p-3.5 rounded bg-surface-elevated border border-border font-mono text-xs select-all text-foreground">
+          Production: <span className="font-semibold text-accent">https://api.behavioursim.vedaangsharma.in</span>
+        </div>
+        <p className="text-xs text-foreground-subtle">
+          In local development, the API typically binds to <code className="font-mono text-foreground">http://localhost:8000</code>.
+        </p>
+
+        <h2 id="versioning" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          API Versioning (/v1)
+        </h2>
+        <p>
+          Core simulation and management endpoints are strictly versioned under the{" "}
+          <code className="font-mono text-foreground">/v1</code> prefix (for example,{" "}
+          <code className="font-mono text-foreground">/v1/simulations</code> or{" "}
+          <code className="font-mono text-foreground">/v1/presets</code>). Non-versioned endpoints are reserved for
+          process probes (<code className="font-mono text-foreground">/health</code>,{" "}
+          <code className="font-mono text-foreground">/ready</code>).
+        </p>
+
+        <h2 id="request-correlation-ids" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Request Correlation IDs (X-Request-ID)
+        </h2>
+        <p>
+          Every response returned by the API includes a unique correlation identifier in the{" "}
+          <code className="font-mono text-foreground">X-Request-ID</code> HTTP header. If you encounter an unexpected error,
+          include this ID when reporting issues to allow trace identification in system logs.
+        </p>
+
+        <h2 id="format-and-envelopes" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Format &amp; Envelopes
+        </h2>
+        <ul className="list-disc pl-5 space-y-1 text-xs">
+          <li><strong>Request Body:</strong> Standard JSON payload (<code className="font-mono">Content-Type: application/json</code>).</li>
+          <li><strong>Response Body:</strong> Standard JSON format (<code className="font-mono">Content-Type: application/json</code>).</li>
+          <li><strong>Timestamps:</strong> Formatted in ISO-8601 UTC string format (e.g. <code className="font-mono">2026-09-14T00:00:00Z</code>).</li>
+        </ul>
+
+        <h2 id="interactive-testing" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Interactive Testing
+        </h2>
+        <p>
+          Try out live requests directly in your browser using the public{" "}
+          <Link href="/api" className="text-accent underline font-medium">
+            Interactive API Explorer
+          </Link>.
+        </p>
+      </div>
+    ),
+  },
+
+  // 12. REST API - Authentication
+  {
+    slug: ["interfaces", "rest", "authentication"],
+    path: "/docs/interfaces/rest/authentication",
+    title: "REST Authentication & Sessions",
+    description: "OAuth 2.0 provider integration and HttpOnly session cookies in BehaviorSim API.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "auth-model", title: "Dual Authentication Model", level: 2 },
+      { id: "oauth-flow", title: "OAuth 2.0 Web Authentication", level: 2 },
+      { id: "session-cookie", title: "Session Cookie Specifications", level: 2 },
+      { id: "logout", title: "Terminating Sessions (Logout)", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          BehaviorSim API implements two orthogonal authentication schemes:
+        </p>
+        <ul className="list-disc pl-5 space-y-1 text-xs">
+          <li><strong>Browser Sessions:</strong> Powered by OAuth (Google, GitHub) issuing an encrypted <code className="font-mono">behaviorsim_session</code> HttpOnly cookie.</li>
+          <li><strong>Programmatic API Keys:</strong> Bearer tokens starting with <code className="font-mono">bs_live_</code> for backend scripts and CLI clients.</li>
+        </ul>
+
+        <h2 id="auth-model" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Dual Authentication Model
+        </h2>
+        <p>
+          Protected routes (like <code className="font-mono">/v1/account</code> or <code className="font-mono">/v1/simulations</code>)
+          accept either an authenticated browser session cookie or an Authorization Bearer header.
+        </p>
+
+        <h2 id="oauth-flow" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          OAuth 2.0 Web Flow
+        </h2>
+        <ol className="list-decimal pl-5 space-y-2 text-xs sm:text-sm">
+          <li>
+            <strong>Initiation:</strong> Navigating to <code className="font-mono text-foreground">GET /v1/auth/&#123;provider&#125;</code> (where <code className="font-mono">provider</code> is <code className="font-mono">google</code> or <code className="font-mono">github</code>) generates a CSRF state token and redirects to the identity provider.
+          </li>
+          <li>
+            <strong>Callback:</strong> Provider redirects back to <code className="font-mono text-foreground">GET /v1/auth/&#123;provider&#125;/callback</code> with state and code.
+          </li>
+          <li>
+            <strong>Session Resolution:</strong> API exchanges code for user profile, seeds account if new, creates database session record, and sets <code className="font-mono text-foreground">behaviorsim_session</code> cookie.
+          </li>
+          <li>
+            <strong>Landing Redirect:</strong> Redirects browser to the configured frontend destination (<code className="font-mono text-foreground">/account</code>).
+          </li>
+        </ol>
+
+        <h2 id="session-cookie" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Session Cookie Specifications
+        </h2>
+        <div className="overflow-x-auto rounded border border-border">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-surface-elevated text-foreground border-b border-border">
+              <tr>
+                <th className="py-2 px-3">Property</th>
+                <th className="py-2 px-3">Value</th>
+                <th className="py-2 px-3">Security Rationale</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              <tr>
+                <td className="py-2 px-3 text-accent font-semibold">Cookie Name</td>
+                <td className="py-2 px-3 text-foreground">behaviorsim_session</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Identifies session token</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-accent font-semibold">HttpOnly</td>
+                <td className="py-2 px-3 text-foreground">true</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Prevents JavaScript XSS extraction</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-accent font-semibold">SameSite</td>
+                <td className="py-2 px-3 text-foreground">Lax</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Protects against Cross-Site Request Forgery</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-accent font-semibold">Secure</td>
+                <td className="py-2 px-3 text-foreground">true (in prod)</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Encrypted in transit over HTTPS</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-accent font-semibold">Max-Age</td>
+                <td className="py-2 px-3 text-foreground">604800 (7 days)</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Automatic expiration window</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="logout" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Terminating Sessions (Logout)
+        </h2>
+        <p>Issuing <code className="font-mono text-foreground">POST /v1/auth/logout</code> invalidates the database session and clears the client cookie:</p>
+        <CodeBlock
+          code={`curl -X POST https://api.behavioursim.vedaangsharma.in/v1/auth/logout \\
+  -H "Accept: application/json" \\
+  --cookie "behaviorsim_session=..."`}
+          language="bash"
+          filename="terminal"
+        />
+      </div>
+    ),
+  },
+
+  // 13. REST API - API Keys
+  {
+    slug: ["interfaces", "rest", "api-keys"],
+    path: "/docs/interfaces/rest/api-keys",
+    title: "API Key Management & Lifecycle",
+    description: "Creating, authenticating with, listing, and revoking developer API keys in BehaviorSim.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "api-key-format", title: "API Key Format", level: 2 },
+      { id: "authenticating-requests", title: "Authenticating Requests", level: 2 },
+      { id: "api-key-lifecycle", title: "Lifecycle Operations", level: 2 },
+      { id: "security-guidelines", title: "Security Best Practices", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          Developer API keys allow automated scripts, CLI executions, and backend microservices to interact
+          with BehaviorSim without user intervention.
+        </p>
+
+        <h2 id="api-key-format" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          API Key Format
+        </h2>
+        <p>
+          All developer API keys generated by BehaviorSim use a standard deterministic prefix:
+        </p>
+        <div className="p-3.5 rounded bg-surface-elevated border border-border font-mono text-xs select-all text-foreground">
+          Format: <span className="font-semibold text-accent">bs_live_&lt;32-char-random-secret&gt;</span>
+        </div>
+
+        <h2 id="authenticating-requests" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Authenticating Requests
+        </h2>
+        <p>Pass your raw API key in the <code className="font-mono text-foreground">Authorization</code> HTTP request header using the standard Bearer scheme:</p>
+        <CodeBlock
+          code={`curl -X POST https://api.behavioursim.vedaangsharma.in/v1/simulations \\
+  -H "Authorization: Bearer bs_live_xxxxxxxxxxxxxxxxxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{"preset": "finance", "num_interactions": 50}'`}
+          language="bash"
+          filename="terminal"
+        />
+
+        <h2 id="api-key-lifecycle" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Lifecycle Operations
+        </h2>
+        <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
+          <li>
+            <strong>Creation (<code className="font-mono">POST /v1/api-keys</code>):</strong> Generates a key record and returns the raw secret string exactly once.
+          </li>
+          <li>
+            <strong>Listing (<code className="font-mono">GET /v1/api-keys</code>):</strong> Returns metadata (ID, name, prefix, creation date, last used date). Raw secrets are never stored in plaintext and cannot be retrieved after creation.
+          </li>
+          <li>
+            <strong>Revocation (<code className="font-mono">DELETE /v1/api-keys/&#123;id&#125;</code>):</strong> Immediately deactivates the key from authenticating future requests.
+          </li>
+        </ul>
+
+        <h2 id="security-guidelines" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Security Best Practices
+        </h2>
+        <div className="p-4 rounded border border-semantic-warning-border bg-semantic-warning-bg text-xs text-foreground-muted space-y-2">
+          <div className="font-semibold text-semantic-warning flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4" />
+            <span>Never Commit API Keys to Public Source Repositories</span>
+          </div>
+          <p>
+            Always load your API key from environment variables (e.g. <code className="font-mono text-foreground">BEHAVIORSIM_API_KEY</code>).
+            Never hardcode API keys into client-side browser code or public GitHub repositories.
+          </p>
+        </div>
+      </div>
+    ),
+  },
+
+  // 14. REST API - Endpoints Reference
+  {
+    slug: ["interfaces", "rest", "endpoints"],
+    path: "/docs/interfaces/rest/endpoints",
+    title: "REST Endpoints Catalog",
+    description: "Complete reference for all endpoints implemented in BehaviorSim API v1.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "health-probes", title: "1. Health & Readiness Probes", level: 2 },
+      { id: "preset-catalog", title: "2. Presets Catalog", level: 2 },
+      { id: "simulation-execution", title: "3. Simulation Execution", level: 2 },
+      { id: "account-and-usage", title: "4. Account & Usage Accounting", level: 2 },
+      { id: "api-key-management", title: "5. API Key Management", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          Complete reference for all HTTP endpoints verified against the BehaviorSim API codebase.
+        </p>
+
+        {/* 1. Health */}
+        <h2 id="health-probes" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          1. Health &amp; Readiness Probes
+        </h2>
+
+        <ApiEndpointCard
+          method="GET"
+          path="/health"
+          title="Process Liveness Probe"
+          description="Lightweight liveness check verifying the application process is running. Performs no database calls."
+          auth="Public"
+          responseBody={`{
+  "status": "ok",
+  "version": "1.0.0"
+}`}
+          curlExample="curl -s https://api.behavioursim.vedaangsharma.in/health"
+        />
+
+        <ApiEndpointCard
+          method="GET"
+          path="/ready"
+          title="Service Readiness Probe"
+          description="Readiness probe verifying the service can accept traffic by executing a database connectivity check."
+          auth="Public"
+          responseBody={`{
+  "status": "ready",
+  "database": "connected",
+  "version": "1.0.0"
+}`}
+          statusCodes={[
+            { code: 200, description: "Service is fully operational" },
+            { code: 503, description: "Database is unavailable or connection timed out" },
+          ]}
+          curlExample="curl -s https://api.behavioursim.vedaangsharma.in/ready"
+        />
+
+        {/* 2. Presets */}
+        <h2 id="preset-catalog" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          2. Presets Catalog
+        </h2>
+
+        <ApiEndpointCard
+          method="GET"
+          path="/v1/presets"
+          title="List Simulation Presets"
+          description="Retrieve the public catalog of all available simulation presets, supported cohorts, and states."
+          auth="Public"
+          responseBody={`[
+  {
+    "name": "education",
+    "description": "Adaptive learning telemetry modeling cognitive load and mastery.",
+    "available": true,
+    "default_profile": "average",
+    "supported_profiles": ["average", "fast_accurate", "fast_inaccurate", "slow_accurate", "slow_inaccurate"],
+    "supported_states": ["Optimal", "Overload", "Underload"]
+  },
+  {
+    "name": "finance",
+    "description": "Synthetic behavioral telemetry for financial trading and risk alerts.",
+    "available": true,
+    "default_profile": "balanced_investor",
+    "supported_profiles": ["conservative_investor", "balanced_investor", "growth_investor", "active_trader"],
+    "supported_states": ["Stable", "Active", "Volatile", "Drawdown", "Recovered", "Closed"]
+  }
+]`}
+          curlExample="curl -s https://api.behavioursim.vedaangsharma.in/v1/presets"
+        />
+
+        <ApiEndpointCard
+          method="GET"
+          path="/v1/presets/{preset}"
+          title="Get Preset Metadata"
+          description="Retrieve detailed configuration metadata for a specific preset by name or alias (e.g. 'mobile')."
+          auth="Public"
+          parameters={[
+            { name: "preset", type: "string (path)", required: true, description: "Preset name (e.g. 'education', 'finance', 'healthcare', 'mobile_app', 'mobile')" },
+          ]}
+          responseBody={`{
+  "name": "finance",
+  "description": "Synthetic behavioral telemetry for financial trading, risk alerts, drawdowns, and portfolio volatility.",
+  "available": true,
+  "default_profile": "balanced_investor",
+  "supported_profiles": ["conservative_investor", "balanced_investor", "growth_investor", "active_trader"],
+  "supported_states": ["Stable", "Active", "Volatile", "Drawdown", "Recovered", "Closed"]
+}`}
+          statusCodes={[
+            { code: 200, description: "Preset metadata resolved" },
+            { code: 404, description: "Preset not found" },
+          ]}
+          curlExample="curl -s https://api.behavioursim.vedaangsharma.in/v1/presets/finance"
+        />
+
+        {/* 3. Simulations */}
+        <h2 id="simulation-execution" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          3. Simulation Execution
+        </h2>
+
+        <ApiEndpointCard
+          method="POST"
+          path="/v1/simulations"
+          title="Execute Behavioral Simulation"
+          description="Authenticate caller, verify quota, and execute a behavioral simulation run using the BehaviorSim engine."
+          auth="Session Cookie or API Key"
+          rateLimit="5 req/min, 1,000 interactions/req"
+          requestBody={`{
+  "preset": "finance",
+  "num_interactions": 10,
+  "seed": 42,
+  "profile": "balanced_investor"
+}`}
+          responseBody={`{
+  "simulation_id": "sim_9f8d7c6b5a4",
+  "preset": "finance",
+  "num_interactions": 10,
+  "seed": 42,
+  "data": [
+    {
+      "sequence_id": 1,
+      "interaction_id": 0,
+      "state": "Stable",
+      "portfolio_value": 1004.2,
+      "daily_return": 0.0042,
+      "risk_alert": 0
+    }
+  ],
+  "metadata": {
+    "behaviorsim_version": "1.0.1",
+    "api_version": "1.0.0",
+    "compute_ms": 28,
+    "reproducible": true
+  }
+}`}
+          statusCodes={[
+            { code: 200, description: "Simulation executed successfully" },
+            { code: 400, description: "Interaction limit exceeded per request" },
+            { code: 401, description: "Missing or invalid credentials" },
+            { code: 403, description: "Monthly interaction quota exhausted" },
+            { code: 429, description: "Rate limit exceeded (5 requests/minute)" },
+          ]}
+          curlExample={`curl -X POST https://api.behavioursim.vedaangsharma.in/v1/simulations \\
+  -H "Authorization: Bearer bs_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"preset": "finance", "num_interactions": 10, "seed": 42}'`}
+        />
+
+        {/* 4. Account & Usage */}
+        <h2 id="account-and-usage" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          4. Account &amp; Usage Accounting
+        </h2>
+
+        <ApiEndpointCard
+          method="GET"
+          path="/v1/account"
+          title="Retrieve Account Profile"
+          description="Returns authenticated user profile, linked identity providers, and active subscription plan."
+          auth="Session Cookie or API Key"
+          responseBody={`{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "email": "user@example.com",
+  "display_name": "Jane Doe",
+  "is_active": true,
+  "created_at": "2026-09-13T12:00:00Z",
+  "authentication_methods": ["github"],
+  "plan": "free"
+}`}
+        />
+
+        <ApiEndpointCard
+          method="GET"
+          path="/v1/usage"
+          title="Retrieve Monthly Quota & Usage"
+          description="Returns current monthly requests, interaction consumption, plan limits, and remaining entitlements."
+          auth="Session Cookie or API Key"
+          responseBody={`{
+  "plan": {
+    "name": "free",
+    "monthly_requests": 100,
+    "monthly_interactions": 10000,
+    "max_interactions_per_request": 1000,
+    "requests_per_minute": 5,
+    "max_concurrent_simulations": 1
+  },
+  "period": {
+    "start": "2026-09-01T00:00:00Z",
+    "end": "2026-10-01T00:00:00Z"
+  },
+  "usage": {
+    "requests": 14,
+    "interactions": 700
+  },
+  "remaining": {
+    "requests": 86,
+    "interactions": 9300
+  }
+}`}
+        />
+
+        {/* 5. API Keys */}
+        <h2 id="api-key-management" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          5. API Key Management
+        </h2>
+
+        <ApiEndpointCard
+          method="GET"
+          path="/v1/api-keys"
+          title="List API Keys"
+          description="Returns all active and revoked API key metadata for the authenticated user."
+          auth="Session Cookie or API Key"
+          responseBody={`[
+  {
+    "id": "key_uuid_1",
+    "name": "CI Pipeline",
+    "key_prefix": "bs_live_a1b2c3",
+    "is_active": true,
+    "created_at": "2026-09-13T14:30:00Z",
+    "last_used_at": "2026-09-13T18:45:00Z",
+    "revoked_at": null
+  }
+]`}
+        />
+
+        <ApiEndpointCard
+          method="POST"
+          path="/v1/api-keys"
+          title="Create Developer API Key"
+          description="Generate a new API key. The raw secret string is returned exactly once in this response."
+          auth="Session Cookie or API Key"
+          requestBody={`{
+  "name": "Local Development Key"
+}`}
+          responseBody={`{
+  "id": "key_uuid_2",
+  "name": "Local Development Key",
+  "key": "bs_live_9f8e7d6c5b4a3210987654321fedcba",
+  "key_prefix": "bs_live_9f8e7d",
+  "created_at": "2026-09-14T00:15:00Z"
+}`}
+          statusCodes={[
+            { code: 201, description: "Key created successfully" },
+            { code: 409, description: "Maximum active API keys limit (1 on Free plan) exceeded" },
+          ]}
+        />
+
+        <ApiEndpointCard
+          method="DELETE"
+          path="/v1/api-keys/{key_id}"
+          title="Revoke Developer API Key"
+          description="Immediately revokes and disables an API key. Once revoked, it cannot be reactivated."
+          auth="Session Cookie or API Key"
+          parameters={[
+            { name: "key_id", type: "UUID (path)", required: true, description: "Unique ID of the API key to revoke" },
+          ]}
+          responseBody={`{
+  "status": "revoked",
+  "id": "key_uuid_2"
+}`}
+          statusCodes={[
+            { code: 200, description: "Key successfully revoked" },
+            { code: 404, description: "Key not found or not owned by user" },
+          ]}
+        />
+      </div>
+    ),
+  },
+
+  // 15. REST API - Errors & Status Codes
+  {
+    slug: ["interfaces", "rest", "errors"],
+    path: "/docs/interfaces/rest/errors",
+    title: "Errors & Status Codes",
+    description: "Structured error response envelope, HTTP status code meanings, and request correlation IDs.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "error-envelope", title: "Standard Error Envelope", level: 2 },
+      { id: "status-codes", title: "HTTP Status Codes", level: 2 },
+      { id: "validation-errors", title: "Validation Errors (422)", level: 2 },
+      { id: "reporting-issues", title: "Reporting Issues with Request IDs", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          BehaviorSim API formats all client and server errors into a predictable JSON envelope matching
+          application-level exceptions.
+        </p>
+
+        <h2 id="error-envelope" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Standard Error Envelope
+        </h2>
+        <CodeBlock
+          code={`{
+  "error": {
+    "message": "Missing or invalid authentication credentials.",
+    "status_code": 401,
+    "details": {},
+    "request_id": "req_8f7e6d5c4b3a2"
+  }
+}`}
+          language="json"
+          filename="error_response.json"
+        />
+
+        <h2 id="status-codes" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          HTTP Status Codes
+        </h2>
+        <div className="overflow-x-auto rounded border border-border">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-surface-elevated text-foreground border-b border-border">
+              <tr>
+                <th className="py-2 px-3">Code</th>
+                <th className="py-2 px-3">Meaning</th>
+                <th className="py-2 px-3">Cause / Example</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">400</td>
+                <td className="py-2 px-3 text-foreground font-sans">Bad Request</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Interaction count exceeds per-request limit (1,000)</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">401</td>
+                <td className="py-2 px-3 text-foreground font-sans">Unauthorized</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Invalid or missing API key or session cookie</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">403</td>
+                <td className="py-2 px-3 text-foreground font-sans">Forbidden</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Monthly interactions quota exhausted or inactive user</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">404</td>
+                <td className="py-2 px-3 text-foreground font-sans">Not Found</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Preset name or API key ID does not exist</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">409</td>
+                <td className="py-2 px-3 text-foreground font-sans">Conflict</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Active API key count limit (1 on Free tier) exceeded</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">422</td>
+                <td className="py-2 px-3 text-foreground font-sans">Unprocessable Entity</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Request parameters failed schema validation (type mismatch)</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">429</td>
+                <td className="py-2 px-3 text-foreground font-sans">Too Many Requests</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Sliding-window rate limit (5 req/min) exceeded; see Retry-After header</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 font-bold text-accent">503</td>
+                <td className="py-2 px-3 text-foreground font-sans">Service Unavailable</td>
+                <td className="py-2 px-3 font-sans text-foreground-muted">Database connectivity lost during readiness check</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="validation-errors" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Validation Errors (422)
+        </h2>
+        <p>When input validation fails, details contains an array specifying the exact parameter location:</p>
+        <CodeBlock
+          code={`{
+  "error": {
+    "message": "Invalid request parameters.",
+    "status_code": 422,
+    "details": {
+      "errors": [
+        {
+          "loc": ["body", "num_interactions"],
+          "msg": "Input should be greater than or equal to 1",
+          "type": "greater_than_equal"
+        }
+      ]
+    },
+    "request_id": "req_10101"
+  }
+}`}
+          language="json"
+          filename="validation_error.json"
+        />
+
+        <h2 id="reporting-issues" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Reporting Issues with Request IDs
+        </h2>
+        <p>
+          Always copy the <code className="font-mono text-foreground">request_id</code> from the error payload or the{" "}
+          <code className="font-mono text-foreground">X-Request-ID</code> header when opening an issue on GitHub.
+        </p>
+      </div>
+    ),
+  },
+
+  // 16. REST API - Rate Limits & Quotas
+  {
+    slug: ["interfaces", "rest", "rate-limits"],
+    path: "/docs/interfaces/rest/rate-limits",
+    title: "Rate Limits & Usage Quotas",
+    description: "Free tier plan entitlements, sliding-window rate limiters, and Retry-After headers.",
+    section: "REST API",
+    version: "1.0.0",
+    headings: [
+      { id: "free-plan-entitlements", title: "Free Plan Entitlements", level: 2 },
+      { id: "rate-limits-vs-quotas", title: "Rate Limits vs. Monthly Quotas", level: 2 },
+      { id: "handling-429", title: "Handling HTTP 429 & Retry-After", level: 2 },
+      { id: "monitoring-usage", title: "Monitoring Usage", level: 2 },
+    ],
+    content: (
+      <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
+        <p>
+          BehaviorSim enforces fair-use rate limits and monthly quotas to ensure dependable availability.
+        </p>
+
+        <h2 id="free-plan-entitlements" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Free Plan Entitlements
+        </h2>
+        <p>Verified default limits for all standard developer accounts:</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Short-Term Rate Limit</div>
+            <div className="text-xl font-bold text-foreground">5 req / min</div>
+            <div className="text-[11px] text-foreground-muted">Sliding-window limiter</div>
+          </div>
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Monthly Request Quota</div>
+            <div className="text-xl font-bold text-foreground">100 req / mo</div>
+            <div className="text-[11px] text-foreground-muted">Resets on 1st of month</div>
+          </div>
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Monthly Interactions</div>
+            <div className="text-xl font-bold text-foreground">10,000 / mo</div>
+            <div className="text-[11px] text-foreground-muted">Total generated steps</div>
+          </div>
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Max Per Request</div>
+            <div className="text-xl font-bold text-foreground">1,000 steps</div>
+            <div className="text-[11px] text-foreground-muted">Per simulation payload</div>
+          </div>
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Concurrency</div>
+            <div className="text-xl font-bold text-foreground">1 simulation</div>
+            <div className="text-[11px] text-foreground-muted">Simultaneous execution</div>
+          </div>
+          <div className="p-4 rounded border border-border bg-surface space-y-1">
+            <div className="text-[11px] text-foreground-subtle uppercase tracking-wider">Developer Keys</div>
+            <div className="text-xl font-bold text-foreground">1 active key</div>
+            <div className="text-[11px] text-foreground-muted">Per free user account</div>
+          </div>
+        </div>
+
+        <h2 id="rate-limits-vs-quotas" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Rate Limits vs. Monthly Quotas
+        </h2>
+        <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
+          <li>
+            <strong>Rate Limit (5 req/min):</strong> Protects compute resources against bursts. Exceeding this returns <code className="font-mono text-foreground">HTTP 429 Too Many Requests</code> with a <code className="font-mono text-foreground">Retry-After</code> header.
+          </li>
+          <li>
+            <strong>Monthly Quota (10,000 interactions):</strong> Monthly allowance. Exceeding this returns <code className="font-mono text-foreground">HTTP 403 Forbidden</code> until the next billing calendar cycle.
+          </li>
+        </ul>
+
+        <h2 id="handling-429" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Handling HTTP 429 &amp; Retry-After
+        </h2>
+        <p>When throttled, inspect the <code className="font-mono text-foreground">Retry-After</code> header to delay subsequent attempts:</p>
+        <CodeBlock
+          code={`HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 48
+X-Request-ID: req_rate_limit_001
+
+{
+  "error": {
+    "message": "Rate limit exceeded. Maximum allowed: 5 requests per minute.",
+    "status_code": 429,
+    "details": {
+      "code": "rate_limit_exceeded",
+      "limit": 5,
+      "retry_after": 48
+    },
+    "request_id": "req_rate_limit_001"
+  }
+}`}
+          language="json"
+          filename="rate_limit_response.json"
+        />
+
+        <h2 id="monitoring-usage" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Monitoring Usage
+        </h2>
+        <p>
+          You can programmatically query your remaining request and interaction quotas at any time by calling{" "}
+          <Link href="/docs/interfaces/rest/endpoints#account-and-usage" className="text-accent underline font-mono">
+            GET /v1/usage
+          </Link>.
+        </p>
       </div>
     ),
   },

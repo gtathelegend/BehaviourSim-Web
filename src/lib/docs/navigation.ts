@@ -25,17 +25,27 @@ export const DOCS_NAVIGATION: NavSection[] = [
     ],
   },
   {
-    title: "Interfaces",
+    title: "Python Library",
     items: [
-      { title: "Python API", href: "/docs/interfaces/python" },
+      { title: "Python API Reference", href: "/docs/interfaces/python" },
       { title: "Command-Line (CLI)", href: "/docs/interfaces/cli" },
     ],
   },
   {
-    title: "Advanced (Roadmap)",
+    title: "REST API",
     items: [
-      { title: "Transition Rules", href: "/docs/concepts/transitions#transition-rules", badge: "Core" },
-      { title: "YAML Specifications", href: "/docs/interfaces/cli#yaml-config", badge: "CLI" },
+      { title: "Overview & Base URL", href: "/docs/interfaces/rest" },
+      { title: "Authentication", href: "/docs/interfaces/rest/authentication" },
+      { title: "API Keys", href: "/docs/interfaces/rest/api-keys" },
+      { title: "Endpoints Reference", href: "/docs/interfaces/rest/endpoints", badge: "v1" },
+      { title: "Errors & Status Codes", href: "/docs/interfaces/rest/errors" },
+      { title: "Rate Limits & Quotas", href: "/docs/interfaces/rest/rate-limits" },
+    ],
+  },
+  {
+    title: "Interactive Tools",
+    items: [
+      { title: "API Explorer", href: "/api", badge: "Live" },
     ],
   },
 ];
@@ -51,8 +61,14 @@ export const ORDERED_DOC_ROUTES: { title: string; href: string }[] = [
   { title: "Transitions & Dynamics", href: "/docs/concepts/transitions" },
   { title: "Engine Overview", href: "/docs/generation" },
   { title: "Domain Presets", href: "/docs/generation/presets" },
-  { title: "Python API", href: "/docs/interfaces/python" },
+  { title: "Python API Reference", href: "/docs/interfaces/python" },
   { title: "Command-Line (CLI)", href: "/docs/interfaces/cli" },
+  { title: "REST API Overview", href: "/docs/interfaces/rest" },
+  { title: "REST Authentication", href: "/docs/interfaces/rest/authentication" },
+  { title: "API Keys", href: "/docs/interfaces/rest/api-keys" },
+  { title: "Endpoints Reference", href: "/docs/interfaces/rest/endpoints" },
+  { title: "Errors & Status Codes", href: "/docs/interfaces/rest/errors" },
+  { title: "Rate Limits & Quotas", href: "/docs/interfaces/rest/rate-limits" },
 ];
 
 export function getDocPagination(currentPath: string): {
