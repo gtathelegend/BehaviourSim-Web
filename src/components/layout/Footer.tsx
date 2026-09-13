@@ -95,6 +95,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/features" className="hover:text-foreground transition-colors">
+                  Capability Matrix
+                </Link>
+              </li>
+              <li>
                 <Link href="/use-cases" className="hover:text-foreground transition-colors">
                   Domain Presets
                 </Link>
