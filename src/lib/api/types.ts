@@ -76,3 +76,36 @@ export interface RevokeAPIKeyResponse {
   status: string;
   id: string;
 }
+
+export interface PresetResponse {
+  name: string;
+  description: string;
+  available: boolean;
+  default_profile: string;
+  supported_profiles: string[];
+  supported_states: string[];
+}
+
+export interface SimulationRequest {
+  preset: string;
+  num_interactions: number;
+  seed?: number | null;
+  profile?: string | null;
+  initial_state?: string | null;
+}
+
+export interface SimulationMetadata {
+  behaviorsim_version: string;
+  api_version: string;
+  compute_ms: number;
+  reproducible: boolean;
+}
+
+export interface SimulationResponse {
+  simulation_id: string;
+  preset: string;
+  num_interactions: number;
+  seed: number | null;
+  data: Record<string, unknown>[];
+  metadata: SimulationMetadata;
+}

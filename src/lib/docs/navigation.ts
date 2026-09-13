@@ -45,6 +45,7 @@ export const DOCS_NAVIGATION: NavSection[] = [
   {
     title: "Interactive Tools",
     items: [
+      { title: "Simulation Playground", href: "/playground", badge: "Interactive" },
       { title: "API Explorer", href: "/api", badge: "Live" },
     ],
   },

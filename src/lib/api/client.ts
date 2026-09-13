@@ -1,5 +1,12 @@
 import { BehaviorSimAPIError } from "./errors";
-import type { ApiErrorPayload } from "./types";
+import type {
+  ApiErrorPayload,
+  AccountResponse,
+  PresetResponse,
+  SimulationRequest,
+  SimulationResponse,
+  UsageResponse,
+} from "./types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.behavioursim.vedaangsharma.in";
@@ -145,4 +152,44 @@ export async function runExplorerRequest(
       isError: true,
     };
   }
+}
+
+/**
+ * Fetch all available simulation presets from the authoritative API catalog.
+ */
+export async function getPresets(): Promise<PresetResponse[]> {
+  return apiClient<PresetResponse[]>("/v1/presets");
+}
+
+/**
+ * Fetch detailed configuration and metadata for a single simulation preset.
+ */
+export async function getPreset(name: string): Promise<PresetResponse> {
+  return apiClient<PresetResponse>(`/v1/presets/${encodeURIComponent(name)}`);
+}
+
+/**
+ * Authenticate and execute a simulation run, reserving usage quota and generating synthetic behavioral records.
+ */
+export async function createSimulation(
+  request: SimulationRequest
+): Promise<SimulationResponse> {
+  return apiClient<SimulationResponse>("/v1/simulations", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * Retrieve current billing period usage metrics and capacity limits for the authenticated user.
+ */
+export async function getUsage(): Promise<UsageResponse> {
+  return apiClient<UsageResponse>("/v1/usage");
+}
+
+/**
+ * Retrieve current user profile and plan details.
+ */
+export async function getAccount(): Promise<AccountResponse> {
+  return apiClient<AccountResponse>("/v1/account");
 }

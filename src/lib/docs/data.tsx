@@ -1237,6 +1237,19 @@ distributions:
           3. Simulation Execution
         </h2>
 
+        <div className="p-4 rounded border border-border bg-surface-elevated/40 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="font-semibold text-foreground block">Test interactively in the browser</span>
+            <span className="text-foreground-muted">Configure presets, execute runs, and inspect tabular data in the BehaviorSim Playground.</span>
+          </div>
+          <Link
+            href="/playground"
+            className="px-3 py-1.5 rounded bg-primary text-primary-foreground font-medium text-xs hover:opacity-90 transition-opacity shrink-0 text-center"
+          >
+            Launch Playground &rarr;
+          </Link>
+        </div>
+
         <ApiEndpointCard
           method="POST"
           path="/v1/simulations"

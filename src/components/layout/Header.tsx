@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 
 const NAV_ITEMS = [
   { label: "Docs", href: "/docs" },
+  { label: "Playground", href: "/playground" },
   { label: "Concepts", href: "/concepts" },
   { label: "Use Cases", href: "/use-cases" },
   { label: "Examples", href: "/examples" },
