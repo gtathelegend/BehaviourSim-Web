@@ -13,19 +13,73 @@ const config: Config = {
     extend: {
       colors: {
         background: "var(--background)",
-        foreground: "var(--foreground)",
-        border: "var(--border)",
-        technical: {
-          50: "#f0f9ff",
-          100: "#e0f2fe",
-          500: "#0284c7",
-          600: "#0369a1",
-          700: "#075985",
+        surface: {
+          DEFAULT: "var(--surface)",
+          elevated: "var(--surface-elevated)",
+          muted: "var(--surface-muted)",
         },
+        foreground: {
+          DEFAULT: "var(--foreground)",
+          muted: "var(--foreground-muted)",
+          subtle: "var(--foreground-subtle)",
+        },
+        border: {
+          DEFAULT: "var(--border)",
+          subtle: "var(--border-subtle)",
+          strong: "var(--border-strong)",
+        },
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          subtle: "var(--accent-subtle)",
+          foreground: "var(--accent-foreground)",
+        },
+        semantic: {
+          success: "var(--success)",
+          "success-bg": "var(--success-bg)",
+          "success-border": "var(--success-border)",
+          warning: "var(--warning)",
+          "warning-bg": "var(--warning-bg)",
+          "warning-border": "var(--warning-border)",
+          error: "var(--error)",
+          "error-bg": "var(--error-bg)",
+          "error-border": "var(--error-border)",
+        },
+        code: {
+          bg: "var(--code-bg)",
+          fg: "var(--code-fg)",
+          border: "var(--code-border)",
+          "inline-bg": "var(--code-inline-bg)",
+          "inline-fg": "var(--code-inline-fg)",
+        },
+        ring: "var(--ring)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+        ],
+        mono: [
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          '"Liberation Mono"',
+          '"Courier New"',
+          "monospace",
+        ],
+      },
+      maxWidth: {
+        content: "72rem", // 1152px (max-w-6xl)
       },
     },
   },

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: {
@@ -17,7 +19,9 @@ export const metadata: Metadata = {
     "behavioral data generator",
   ],
   authors: [{ name: "BehaviorSim Contributors" }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://behavioursim.vedaangsharma.in"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://behavioursim.vedaangsharma.in"
+  ),
   openGraph: {
     title: "BehaviorSim — Scientific Behavioral Simulation Framework",
     description:
@@ -40,8 +44,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col antialiased selection:bg-sky-700 selection:text-white">
-        {children}
+      <body className="min-h-screen flex flex-col antialiased selection:bg-accent selection:text-white">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -2,31 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #fafafa;
-  --foreground: #09090b;
-  --border: #e4e4e7;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
+    /* Base Backgrounds & Surfaces */
+    --background: #fcfcfd;
+    --surface: #ffffff;
+    --surface-elevated: #f4f4f6;
+    --surface-muted: #f1f1f4;
+
+    /* Foregrounds */
+    --foreground: #09090b;
+    --foreground-muted: #52525b;
+    --foreground-subtle: #71717a;
+
+    /* Borders */
+    --border: #e4e4e7;
+    --border-subtle: #f4f4f5;
+    --border-strong: #d4d4d8;
+
+    /* Primary & Brand Accents (Precision Technical Slate / Cyan) */
+    --primary: #0f172a;
+    --primary-foreground: #f8fafc;
+    --accent: #0284c7;
+    --accent-subtle: #f0f9ff;
+    --accent-foreground: #0369a1;
+
+    /* Semantic Status Tokens */
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+    --warning: #d97706;
+    --warning-bg: #fffbeb;
+    --warning-border: #fde68a;
+    --error: #dc2626;
+    --error-bg: #fef2f2;
+    --error-border: #fecaca;
+
+    /* Code & Technical Presentation */
+    --code-bg: #09090b;
+    --code-fg: #f4f4f5;
+    --code-border: #27272a;
+    --code-inline-bg: #f4f4f5;
+    --code-inline-fg: #09090b;
+
+    /* Focus & Ring */
+    --ring: #0284c7;
+  }
+
+  .dark {
+    /* Base Backgrounds & Surfaces */
     --background: #09090b;
-    --foreground: #fafafa;
+    --surface: #111114;
+    --surface-elevated: #18181b;
+    --surface-muted: #202024;
+
+    /* Foregrounds */
+    --foreground: #f4f4f5;
+    --foreground-muted: #a1a1aa;
+    --foreground-subtle: #71717a;
+
+    /* Borders */
     --border: #27272a;
+    --border-subtle: #1c1c20;
+    --border-strong: #3f3f46;
+
+    /* Primary & Brand Accents */
+    --primary: #f8fafc;
+    --primary-foreground: #09090b;
+    --accent: #38bdf8;
+    --accent-subtle: #082f49;
+    --accent-foreground: #bae6fd;
+
+    /* Semantic Status Tokens */
+    --success: #22c55e;
+    --success-bg: #052e16;
+    --success-border: #14532d;
+    --warning: #f59e0b;
+    --warning-bg: #451a03;
+    --warning-border: #78350f;
+    --error: #ef4444;
+    --error-bg: #450a0a;
+    --error-border: #7f1d1d;
+
+    /* Code & Technical Presentation */
+    --code-bg: #050507;
+    --code-fg: #e4e4e7;
+    --code-border: #202026;
+    --code-inline-bg: #1f1f23;
+    --code-inline-fg: #e4e4e7;
+
+    /* Focus & Ring */
+    --ring: #38bdf8;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
 }
 
-::selection {
-  background-color: #0284c7;
-  color: #ffffff;
+/* Accessible visible focus states */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Subtle Technical Grid Motif */
+.bg-tech-grid {
+  background-size: 24px 24px;
+  background-image:
+    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+}
+
+.bg-tech-dots {
+  background-size: 16px 16px;
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
 }
