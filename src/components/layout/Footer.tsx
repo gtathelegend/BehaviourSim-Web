@@ -141,47 +141,65 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar with License */}
-        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-foreground-subtle">
-          <div>
-            Released under the{" "}
-            <a
-              href="https://opensource.org/licenses/MIT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              MIT License
-            </a>
-            . BehaviorSim Open Source Contributors.
+        {/* Bottom Bar with Attribution, Contact, and License */}
+        <div className="pt-8 border-t border-border flex flex-col gap-4 text-foreground-subtle">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <div>
+              Made with ❤️ and ☕ by{" "}
+              <span className="font-medium text-foreground">Vedaang Sharma</span>
+            </div>
+            <div>
+              Questions or issues?{" "}
+              <a
+                href="mailto:info@vedaangsharma.in"
+                className="text-foreground hover:underline transition-colors"
+              >
+                info@vedaangsharma.in
+              </a>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://github.com/gtathelegend/BehaviourSim"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              GitHub
-            </a>
-            <span>·</span>
-            <a
-              href="https://pypi.org/project/behaviorsim/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              PyPI
-            </a>
-            <span>·</span>
-            <a
-              href="https://api.behavioursim.vedaangsharma.in"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              API Base
-            </a>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-border/50 text-[11px]">
+            <div>
+              Released under the{" "}
+              <a
+                href="https://opensource.org/licenses/MIT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground transition-colors"
+              >
+                MIT License
+              </a>
+              . BehaviorSim Open Source Contributors.
+            </div>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://github.com/gtathelegend/BehaviourSim"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                GitHub
+              </a>
+              <span>•</span>
+              <a
+                href="https://pypi.org/project/behaviorsim/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                PyPI
+              </a>
+              <span>•</span>
+              <a
+                href="https://api.behavioursim.vedaangsharma.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                API Base
+              </a>
+            </div>
           </div>
         </div>
       </Container>

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "Python behavioral simulator",
     "behavioral data generator",
   ],
-  authors: [{ name: "BehaviorSim Contributors" }],
+  authors: [{ name: "Vedaang Sharma", url: "https://vedaangsharma.in" }],
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "https://behavioursim.vedaangsharma.in"
   ),

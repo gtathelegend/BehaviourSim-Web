@@ -113,6 +113,19 @@ npm run build
 └── tsconfig.json           # TypeScript configuration with @/* alias
 ```
 
+## Contributing
+
+Contributions are welcome. If you find a bug, have an idea, or would like to improve the project, feel free to open an issue or submit a pull request.
+
+For technical bug reports and feature requests, please use [GitHub Issues](https://github.com/gtathelegend/BehaviourSim-Web/issues). For questions, feedback, or project-related inquiries that require direct contact, email [info@vedaangsharma.in](mailto:info@vedaangsharma.in).
+
+## Author & Maintainer
+
+BehaviorSim Web is created and maintained by **Vedaang Sharma**.
+
+- **Email**: [info@vedaangsharma.in](mailto:info@vedaangsharma.in)
+- **GitHub**: [@gtathelegend](https://github.com/gtathelegend)
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
