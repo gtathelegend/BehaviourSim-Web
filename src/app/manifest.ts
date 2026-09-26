@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
+import { SITE_CONFIG } from "@/lib/seo/config";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BehaviorSim — Scientific Behavioral Simulation Framework",
-    short_name: "BehaviorSim",
-    description:
-      "Open-source Python framework and API for simulating complex human and system behaviors through mathematical Markov models and synthetic sequential generation.",
+    name: `${SITE_CONFIG.name} — Synthetic Sequential Behavioral Data Platform`,
+    short_name: SITE_CONFIG.name,
+    description: SITE_CONFIG.defaultDescription,
     start_url: "/",
     display: "standalone",
     background_color: "#0a0c10",

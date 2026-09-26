@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_CONFIG } from "@/lib/seo/config";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://behavioursim.vedaangsharma.in";
-
   return {
     rules: [
       {
@@ -15,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: `${SITE_CONFIG.siteUrl}/sitemap.xml`,
+    host: SITE_CONFIG.siteUrl,
   };
 }

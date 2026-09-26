@@ -5,8 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ExternalLink } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Sign In — BehaviorSim",
-  description: "Sign in to your BehaviorSim account to manage API keys and inspect simulation quotas.",
+  title: "Sign In — BehaviourSim",
+  description: "Sign in to your BehaviourSim account to manage API keys and inspect simulation quotas.",
   robots: {
     index: false,
     follow: false,
@@ -29,7 +29,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-sm bg-accent inline-block" />
                 <span className="text-xs font-mono text-foreground-muted tracking-widest uppercase">
-                  BehaviorSim
+                  BehaviourSim
                 </span>
               </div>
               <CardTitle className="text-xl sm:text-2xl font-semibold tracking-tight">

@@ -52,7 +52,7 @@ export function Header() {
               className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               <span className="w-2.5 h-2.5 rounded-sm bg-accent inline-block" />
-              <span>BehaviorSim</span>
+              <span>BehaviourSim</span>
               <span className="text-[10px] font-mono font-normal px-1.5 py-0.5 rounded bg-surface-elevated text-foreground-muted border border-border">
                 v1.0.1
               </span>

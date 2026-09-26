@@ -127,7 +127,7 @@ export function Footer() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="w-2.5 h-2.5 rounded-sm bg-accent inline-block" />
-              <span>BehaviorSim</span>
+              <span>BehaviourSim</span>
             </div>
             <p className="text-xs leading-relaxed text-foreground-subtle">
               An open-source scientific framework for stochastic behavioral simulation and synthetic
@@ -146,7 +146,13 @@ export function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
             <div>
               Made with ❤️ and ☕ by{" "}
-              <span className="font-medium text-foreground">Vedaang Sharma</span>
+              <a
+                href="https://vedaangsharma.in"
+                rel="author"
+                className="font-medium text-foreground hover:underline transition-colors"
+              >
+                Vedaang Sharma
+              </a>
             </div>
             <div>
               Questions or issues?{" "}
@@ -170,7 +176,7 @@ export function Footer() {
               >
                 MIT License
               </a>
-              . BehaviorSim Open Source Contributors.
+              . BehaviourSim Open Source Contributors.
             </div>
             <div className="flex items-center gap-4">
               <a

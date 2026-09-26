@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Simulation Playground — BehaviorSim",
+  title: "Simulation Playground — BehaviourSim",
   description: "Interactive synthetic behavioral simulation workbench. Configure domain presets, execute runs, and inspect generated telemetry records.",
   robots: {
     index: false,

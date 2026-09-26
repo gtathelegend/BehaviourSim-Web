@@ -3,38 +3,45 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/AuthContext";
+import { SITE_CONFIG } from "@/lib/seo/config";
 
 export const metadata: Metadata = {
   title: {
-    default: "BehaviorSim — Scientific Behavioral Simulation Framework",
-    template: "%s | BehaviorSim",
+    default: SITE_CONFIG.defaultTitle,
+    template: SITE_CONFIG.titleTemplate,
   },
-  description:
-    "An open-source Python framework and API for simulating complex human and system behaviors through mathematical Markov models and synthetic sequential generation.",
-  keywords: [
-    "behavioral simulation",
-    "synthetic behavioral data",
-    "Markov behavioral simulation",
-    "synthetic sequential data",
-    "Python behavioral simulator",
-    "behavioral data generator",
-  ],
-  authors: [{ name: "Vedaang Sharma", url: "https://vedaangsharma.in" }],
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://behavioursim.vedaangsharma.in"
-  ),
+  description: SITE_CONFIG.defaultDescription,
+  keywords: [...SITE_CONFIG.defaultKeywords],
+  authors: [{ name: SITE_CONFIG.author.name, url: SITE_CONFIG.author.url }],
+  creator: SITE_CONFIG.author.name,
+  publisher: SITE_CONFIG.author.name,
+  metadataBase: new URL(SITE_CONFIG.siteUrl),
+  alternates: {
+    canonical: SITE_CONFIG.siteUrl,
+  },
   openGraph: {
-    title: "BehaviorSim — Scientific Behavioral Simulation Framework",
-    description:
-      "Open-source Python framework and API for generative behavioral modeling and synthetic sequential data.",
-    url: "https://behavioursim.vedaangsharma.in",
-    siteName: "BehaviorSim",
-    locale: "en_US",
+    title: SITE_CONFIG.defaultTitle,
+    description: SITE_CONFIG.defaultDescription,
+    url: SITE_CONFIG.siteUrl,
+    siteName: SITE_CONFIG.name,
+    locale: SITE_CONFIG.locale,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_CONFIG.defaultTitle,
+    description: SITE_CONFIG.defaultDescription,
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
