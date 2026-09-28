@@ -388,17 +388,40 @@ idle_state = State(
           Example: Custom States
         </h2>
         <CodeBlock
-          code={`from behaviorsim import State, Simulator
+          code={`import numpy as np
+from behaviorsim import State, Profile, Simulator, FeatureDistribution
 
 states = [
-    State("Exploring"),
-    State("Comparing"),
-    State("Purchased"),
-    State("Exited")
+    State("Exploring", description="Browsing product catalog"),
+    State("Comparing", description="Evaluating alternatives"),
+    State("Purchased", description="Completed checkout"),
+    State("Exited", description="Session concluded")
 ]
 
-# Initialize simulator with custom state list
-sim = Simulator(states=states)`}
+# Define transition matrix between the 4 states
+trans_matrix = np.array([
+    [0.4, 0.4, 0.1, 0.1],  # Exploring
+    [0.2, 0.5, 0.2, 0.1],  # Comparing
+    [0.0, 0.0, 0.0, 1.0],  # Purchased -> Exited
+    [0.0, 0.0, 0.0, 1.0],  # Exited absorbing
+])
+
+# Define profile with state emissions and transition matrix
+profile = Profile(
+    name="shopper",
+    transition_matrix=trans_matrix,
+    state_emissions={
+        "Exploring": {"duration_sec": FeatureDistribution("exponential", {"scale": 15.0})},
+        "Comparing": {"duration_sec": FeatureDistribution("normal", {"loc": 35.0, "scale": 10.0})},
+        "Purchased": {"duration_sec": FeatureDistribution("uniform", {"low": 4.0, "high": 6.0})},
+        "Exited": {"duration_sec": FeatureDistribution("uniform", {"low": 0.0, "high": 1.0})},
+    }
+)
+
+# Initialize simulator and generate 20 interactions
+sim = Simulator(states=states, profile=profile)
+df = sim.generate(num_interactions=20, seed=42)
+print(df[["interaction_id", "state", "duration_sec"]].head())`}
           language="python"
           filename="custom_states.py"
         />
@@ -434,10 +457,11 @@ sim = Simulator(states=states)`}
         </p>
         <CodeBlock
           code={`import numpy as np
-from behaviorsim import Simulator, State
+from behaviorsim import Simulator, State, Profile, FeatureDistribution
 
-states = [State("A"), State("B")]
+states = [State("A", description="State A"), State("B", description="State B")]
 
+# Transition probability matrix (rows must sum to 1.0)
 # Row 0: Transitions from A -> [A (80%), B (20%)]
 # Row 1: Transitions from B -> [A (10%), B (90%)]
 matrix = np.array([
@@ -445,7 +469,19 @@ matrix = np.array([
     [0.1, 0.9]
 ])
 
-sim = Simulator(states=states, transition_matrix=matrix)`}
+# Profile defines transitions and emitted feature distributions
+profile = Profile(
+    name="dynamic_agent",
+    transition_matrix=matrix,
+    state_emissions={
+        "A": {"latency": FeatureDistribution("normal", {"loc": 100.0, "scale": 15.0})},
+        "B": {"latency": FeatureDistribution("exponential", {"scale": 250.0})},
+    }
+)
+
+sim = Simulator(states=states, profile=profile)
+df = sim.generate(num_interactions=50, seed=42)
+print(df[["interaction_id", "state", "latency"]].head())`}
           language="python"
           filename="matrix_example.py"
         />
@@ -515,8 +551,14 @@ sim = Simulator(states=states, transition_matrix=matrix)`}
           Pass <code className="font-mono text-foreground">num_sequences</code> to generate multiple independent agent cohorts:
         </p>
         <CodeBlock
-          code={`# Generates 100 sequences of 50 interactions each (total 5,000 interaction rows)
-df = sim.generate(num_interactions=50, num_sequences=100, seed=123)`}
+          code={`from behaviorsim import Simulator
+
+# Load built-in education preset
+sim = Simulator.from_preset("education")
+
+# Generates 100 sequences of 50 interactions each (total 5,000 interaction rows)
+df = sim.generate(num_interactions=50, num_sequences=100, seed=123)
+print(f"Generated {len(df)} total rows across {df['sequence_id'].nunique()} sequences.")`}
           language="python"
           filename="multi_seq.py"
         />
@@ -529,9 +571,20 @@ df = sim.generate(num_interactions=50, num_sequences=100, seed=123)`}
           immediately export traces using standard pandas methods:
         </p>
         <CodeBlock
-          code={`df.to_csv("traces.csv", index=False)
-df.to_parquet("traces.parquet", index=False)
-df.to_json("traces.json", orient="records")`}
+          code={`from behaviorsim import Simulator
+
+sim = Simulator.from_preset("education")
+df = sim.generate(num_interactions=50, num_sequences=2, seed=42)
+
+# Export generated traces to CSV and JSON
+df.to_csv("traces.csv", index=False)
+df.to_json("traces.json", orient="records")
+
+# Apache Parquet export (requires: pip install pyarrow)
+try:
+    df.to_parquet("traces.parquet", index=False)
+except ImportError:
+    pass`}
           language="python"
           filename="export.py"
         />
@@ -553,6 +606,7 @@ df.to_json("traces.json", orient="records")`}
       { id: "healthcare-preset", title: "2. Healthcare Preset", level: 2 },
       { id: "education-preset", title: "3. Education Preset", level: 2 },
       { id: "mobile-app-preset", title: "4. Mobile App Preset", level: 2 },
+      { id: "preset-execution", title: "Running Preset Simulations", level: 2 },
       { id: "scientific-disclaimer", title: "Important Scientific Disclaimers", level: 2 },
     ],
     content: (
@@ -609,6 +663,36 @@ df.to_json("traces.json", orient="records")`}
           <li><strong>Features:</strong> <code className="font-mono">session_time_seconds</code>, <code className="font-mono">action_count</code>, <code className="font-mono">scroll_depth</code>, <code className="font-mono">button_clicks</code>, <code className="font-mono">notification_clicked</code>, <code className="font-mono">cart_value</code></li>
         </ul>
 
+        <h2 id="preset-execution" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Running Preset Simulations
+        </h2>
+        <p>You can execute each preset directly using the public Python API:</p>
+        <CodeBlock
+          code={`from behaviorsim import Simulator
+
+# 1. Finance Preset
+sim_fin = Simulator.from_preset("finance")
+df_fin = sim_fin.generate(num_interactions=50, seed=42)
+print("Finance rows:", len(df_fin), "Cols:", list(df_fin.columns[:4]))
+
+# 2. Healthcare Preset (Synthetic statistical testbed)
+sim_hc = Simulator.from_preset("healthcare")
+df_hc = sim_hc.generate(num_interactions=50, seed=42)
+print("Healthcare rows:", len(df_hc), "Cols:", list(df_hc.columns[:4]))
+
+# 3. Education Preset
+sim_edu = Simulator.from_preset("education")
+df_edu = sim_edu.generate(num_interactions=50, seed=42)
+print("Education rows:", len(df_edu), "Cols:", list(df_edu.columns[:4]))
+
+# 4. Mobile App Preset
+sim_mob = Simulator.from_preset("mobile_app")
+df_mob = sim_mob.generate(num_interactions=50, seed=42)
+print("Mobile App rows:", len(df_mob), "Cols:", list(df_mob.columns[:4]))`}
+          language="python"
+          filename="presets_demo.py"
+        />
+
         <h2 id="scientific-disclaimer" className="text-xl font-semibold tracking-tight text-foreground pt-4">
           Important Scientific Disclaimers
         </h2>
@@ -641,6 +725,7 @@ df.to_json("traces.json", orient="records")`}
       { id: "simulator-generate", title: "Simulator.generate()", level: 2 },
       { id: "core-classes", title: "Core Classes (State, Profile)", level: 2 },
       { id: "preset-discovery", title: "Preset Discovery", level: 2 },
+      { id: "multi-profile", title: "Multi-Profile Mixture Simulation", level: 2 },
     ],
     content: (
       <div className="space-y-6 text-sm text-foreground-muted leading-relaxed">
@@ -730,6 +815,50 @@ print(presets_list)
 # Output: ['education', 'finance', 'healthcare', 'mobile_app']`}
           language="python"
           filename="discovery.py"
+        />
+
+        <h2 id="multi-profile" className="text-xl font-semibold tracking-tight text-foreground pt-4">
+          Multi-Profile Mixture Simulation
+        </h2>
+        <p>Simulate heterogeneous populations by specifying multiple persona profiles with distribution weights:</p>
+        <CodeBlock
+          code={`import numpy as np
+from behaviorsim import State, Profile, Simulator, FeatureDistribution
+
+states = [State("Active"), State("Idle")]
+trans = np.array([[0.8, 0.2], [0.3, 0.7]])
+
+# Fast user persona
+p_fast = Profile(
+    name="fast_user",
+    transition_matrix=trans,
+    state_emissions={
+        "Active": {"latency": FeatureDistribution("normal", {"loc": 50.0, "scale": 5.0})},
+        "Idle": {"latency": FeatureDistribution("normal", {"loc": 200.0, "scale": 10.0})},
+    }
+)
+
+# Slow user persona
+p_slow = Profile(
+    name="slow_user",
+    transition_matrix=trans,
+    state_emissions={
+        "Active": {"latency": FeatureDistribution("normal", {"loc": 250.0, "scale": 20.0})},
+        "Idle": {"latency": FeatureDistribution("normal", {"loc": 500.0, "scale": 50.0})},
+    }
+)
+
+# Initialize with profile mixture mapping
+sim = Simulator(
+    states=states,
+    profiles=[p_fast, p_slow],
+    profile_distribution={"fast_user": 0.6, "slow_user": 0.4}
+)
+df = sim.generate(num_interactions=20, num_sequences=5, seed=42)
+print("Sequences:", df["sequence_id"].nunique(), "Profiles:", list(df["profile"].unique()))
+print(df.head())`}
+          language="python"
+          filename="mixture_sim.py"
         />
       </div>
     ),
@@ -824,24 +953,82 @@ behaviorsim run config.yaml -o traces.parquet --sequences 50`}
         </div>
 
         <h2 id="yaml-config" className="text-xl font-semibold tracking-tight text-foreground pt-4">
-          Configuration File Example
+          Configuration File Examples
         </h2>
+        <p>A validated YAML configuration file conforming to the <code className="font-mono text-foreground">SimulationConfig</code> schema:</p>
         <CodeBlock
           code={`# simulation.yaml
-seed: 42
+version: "1.0"
 states:
   - name: "Active"
-    description: "Engaged user"
+    description: "Engaged active state"
   - name: "Idle"
-    description: "Passive user"
-distributions:
-  - state: "Active"
-    feature: "action_count"
-    distribution: "poisson"
-    params:
-      lam: 6.0`}
+    description: "Passive idle state"
+transition_matrix:
+  - [0.7, 0.3]
+  - [0.2, 0.8]
+profiles:
+  - name: "default_user"
+    state_emissions:
+      Active:
+        latency_ms:
+          distribution: "normal"
+          params:
+            loc: 120.0
+            scale: 25.0
+      Idle:
+        latency_ms:
+          distribution: "exponential"
+          params:
+            scale: 500.0
+simulation:
+  num_interactions: 100
+  num_sequences: 1
+  seed: 42
+  initial_state: "Active"`}
           language="yaml"
           filename="simulation.yaml"
+        />
+        <p className="pt-2">Equivalent JSON configuration file supported by both <code className="font-mono text-foreground">behaviorsim validate</code> and <code className="font-mono text-foreground">behaviorsim run</code>:</p>
+        <CodeBlock
+          code={`{
+  "version": "1.0",
+  "states": [
+    { "name": "Active", "description": "Engaged active state" },
+    { "name": "Idle", "description": "Passive idle state" }
+  ],
+  "transition_matrix": [
+    [0.7, 0.3],
+    [0.2, 0.8]
+  ],
+  "profiles": [
+    {
+      "name": "default_user",
+      "state_emissions": {
+        "Active": {
+          "latency_ms": {
+            "distribution": "normal",
+            "params": { "loc": 120.0, "scale": 25.0 }
+          }
+        },
+        "Idle": {
+          "latency_ms": {
+            "distribution": "exponential",
+            "params": { "scale": 500.0 }
+          }
+        }
+      }
+    }
+  ],
+  "simulation": {
+    "num_interactions": 100,
+    "num_sequences": 1,
+    "seed": 42,
+    "initial_state": "Active"
+  }
+}`}
+          language="json"
+          filename="simulation.json"
         />
       </div>
     ),
@@ -854,7 +1041,7 @@ distributions:
     title: "REST API Overview & Base URL",
     description: "Architectural overview, base URL, versioning, and standards for the BehaviorSim cloud REST API.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "production-base-url", title: "Base URL & HTTPS", level: 2 },
       { id: "versioning", title: "API Versioning (/v1)", level: 2 },
@@ -930,7 +1117,7 @@ distributions:
     title: "REST Authentication & Sessions",
     description: "OAuth 2.0 provider integration and HttpOnly session cookies in BehaviorSim API.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "auth-model", title: "Dual Authentication Model", level: 2 },
       { id: "oauth-flow", title: "OAuth 2.0 Web Authentication", level: 2 },
@@ -1037,7 +1224,7 @@ distributions:
     title: "API Key Management & Lifecycle",
     description: "Creating, authenticating with, listing, and revoking developer API keys in BehaviorSim.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "api-key-format", title: "API Key Format", level: 2 },
       { id: "authenticating-requests", title: "Authenticating Requests", level: 2 },
@@ -1126,7 +1313,7 @@ distributions:
     title: "REST Endpoints Catalog",
     description: "Complete reference for all endpoints implemented in BehaviorSim API v1.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "health-probes", title: "1. Health & Readiness Probes", level: 2 },
       { id: "preset-catalog", title: "2. Presets Catalog", level: 2 },
@@ -1153,7 +1340,7 @@ distributions:
           auth="Public"
           responseBody={`{
   "status": "ok",
-  "version": "1.0.0"
+  "version": "0.1.0"
 }`}
           curlExample="curl -s https://api.behavioursim.vedaangsharma.in/health"
         />
@@ -1167,7 +1354,7 @@ distributions:
           responseBody={`{
   "status": "ready",
   "database": "connected",
-  "version": "1.0.0"
+  "version": "0.1.0"
 }`}
           statusCodes={[
             { code: 200, description: "Service is fully operational" },
@@ -1425,7 +1612,7 @@ distributions:
     title: "Errors & Status Codes",
     description: "Structured error response envelope, HTTP status code meanings, and request correlation IDs.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "error-envelope", title: "Standard Error Envelope", level: 2 },
       { id: "status-codes", title: "HTTP Status Codes", level: 2 },
@@ -1555,7 +1742,7 @@ distributions:
     title: "Rate Limits & Usage Quotas",
     description: "Free tier plan entitlements, sliding-window rate limiters, and Retry-After headers.",
     section: "REST API",
-    version: "1.0.0",
+    version: "0.1.0",
     headings: [
       { id: "free-plan-entitlements", title: "Free Plan Entitlements", level: 2 },
       { id: "rate-limits-vs-quotas", title: "Rate Limits vs. Monthly Quotas", level: 2 },
@@ -1639,8 +1826,8 @@ X-Request-ID: req_rate_limit_001
     "request_id": "req_rate_limit_001"
   }
 }`}
-          language="json"
-          filename="rate_limit_response.json"
+          language="http"
+          filename="rate_limit_response.http"
         />
 
         <h2 id="monitoring-usage" className="text-xl font-semibold tracking-tight text-foreground pt-4">

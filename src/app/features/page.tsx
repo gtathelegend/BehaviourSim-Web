@@ -64,21 +64,41 @@ behaviorsim run simulation.yaml \\
   --sequences 25`;
 
   const yamlExample = `# simulation.yaml - Declarative Configuration
-seed: 42
+version: "1.0"
+
 states:
   - name: "Active"
     description: "Engaged session state"
   - name: "Idle"
     description: "Passive browsing state"
-distributions:
-  - state: "Active"
-    feature: "action_count"
-    distribution: "poisson"
-    params: { lam: 8.5 }
-  - state: "Active"
-    feature: "session_duration"
-    distribution: "lognormal"
-    params: { mean: 4.2, sigma: 0.8 }`;
+
+transition_matrix:
+  - [0.75, 0.25]
+  - [0.30, 0.70]
+
+profiles:
+  - name: "standard_user"
+    state_emissions:
+      Active:
+        action_count:
+          distribution: "poisson"
+          params: { lam: 8 }
+        session_duration:
+          distribution: "lognormal"
+          params: { mean: 4.2, sigma: 0.8 }
+      Idle:
+        action_count:
+          distribution: "poisson"
+          params: { lam: 1 }
+        session_duration:
+          distribution: "normal"
+          params: { loc: 30.0, scale: 10.0 }
+
+simulation:
+  num_interactions: 50
+  num_sequences: 10
+  seed: 42
+  initial_state: "Active"`;
 
   const verifiedCapabilities = [
     {
