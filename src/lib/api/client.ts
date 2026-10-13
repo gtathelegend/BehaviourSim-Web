@@ -12,8 +12,44 @@ import type {
   UsageResponse,
 } from "./types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.behavioursim.vedaangsharma.in";
+let customApiKey: string | null = null;
+
+export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const custom = localStorage.getItem("behaviorsim_api_base_url");
+    if (custom) return custom;
+  }
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.behavioursim.vedaangsharma.in";
+}
+
+export function setApiBaseUrl(url: string | null): void {
+  if (typeof window !== "undefined") {
+    if (url) {
+      localStorage.setItem("behaviorsim_api_base_url", url);
+    } else {
+      localStorage.removeItem("behaviorsim_api_base_url");
+    }
+  }
+}
+
+export function getApiKey(): string | null {
+  if (customApiKey) return customApiKey;
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("behaviorsim_api_key");
+  }
+  return null;
+}
+
+export function setApiKey(key: string | null): void {
+  customApiKey = key ? key.trim() : null;
+  if (typeof window !== "undefined") {
+    if (key && key.trim()) {
+      localStorage.setItem("behaviorsim_api_key", key.trim());
+    } else {
+      localStorage.removeItem("behaviorsim_api_key");
+    }
+  }
+}
 
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
@@ -34,7 +70,8 @@ export interface ExplorerResult<T = unknown> {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, headers, ...restOptions } = options;
 
-  let url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const baseUrl = getApiBaseUrl();
+  let url = `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   if (params) {
     const searchParams = new URLSearchParams();
@@ -49,15 +86,24 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     }
   }
 
-  const defaultHeaders: HeadersInit = {
+  const defaultHeaders: Record<string, string> = {
     Accept: "application/json",
     ...(restOptions.body ? { "Content-Type": "application/json" } : {}),
+  };
+
+  const key = getApiKey();
+  if (key) {
+    defaultHeaders["Authorization"] = `Bearer ${key}`;
+  }
+
+  const mergedHeaders: HeadersInit = {
+    ...defaultHeaders,
     ...headers,
   };
 
   const response = await fetch(url, {
     credentials: "include", // Enables HttpOnly session cookie transmission
-    headers: defaultHeaders,
+    headers: mergedHeaders,
     ...restOptions,
   });
 
@@ -112,7 +158,8 @@ export async function runExplorerRequest(
     throw new Error(`Endpoint '${endpointPath}' is not in the public explorer whitelist.`);
   }
 
-  const fullUrl = `${API_BASE_URL}${targetPath}`;
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = `${baseUrl}${targetPath}`;
   const startTime = performance.now();
 
   try {

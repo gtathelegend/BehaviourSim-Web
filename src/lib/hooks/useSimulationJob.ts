@@ -54,6 +54,8 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
   const [detail, setDetail] = useState<SimulationDetailResponse | null>(null);
   const [error, setError] = useState<JobError | null>(null);
   const [lastRequest, setLastRequest] = useState<SimulationRequest | null>(null);
+  const [pollCount, setPollCount] = useState<number>(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
   // References to prevent stale closures, double polling, and unmount updates
   const isMountedRef = useRef(true);
@@ -63,6 +65,7 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
   const consecutiveErrorsRef = useRef(0);
   const currentIntervalRef = useRef(initialPollIntervalMs);
   const lastRequestRef = useRef<SimulationRequest | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   // Clear any scheduled polling timeout safely
   const clearPollTimer = useCallback(() => {
@@ -81,6 +84,10 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
       }
 
       attemptCountRef.current += 1;
+      setPollCount(attemptCountRef.current);
+      if (startTimeRef.current) {
+        setElapsedSeconds(Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000)));
+      }
 
       // Check client-side polling timeout
       if (attemptCountRef.current > maxAttempts) {
@@ -225,6 +232,9 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
       setLastRequest(request);
       lastRequestRef.current = request;
       attemptCountRef.current = 0;
+      setPollCount(0);
+      setElapsedSeconds(0);
+      startTimeRef.current = Date.now();
       consecutiveErrorsRef.current = 0;
       currentIntervalRef.current = initialPollIntervalMs;
 
@@ -280,6 +290,9 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
       clearPollTimer();
       activeJobIdRef.current = targetId;
       attemptCountRef.current = 0;
+      setPollCount(0);
+      setElapsedSeconds(0);
+      startTimeRef.current = Date.now();
       consecutiveErrorsRef.current = 0;
       currentIntervalRef.current = initialPollIntervalMs;
       setError(null);
@@ -301,10 +314,13 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
   const reset = useCallback(() => {
     clearPollTimer();
     activeJobIdRef.current = null;
+    startTimeRef.current = null;
     setJobStatus("idle");
     setSimulationId(null);
     setDetail(null);
     setError(null);
+    setPollCount(0);
+    setElapsedSeconds(0);
   }, [clearPollTimer]);
 
   // Clean up timer and abort on unmount
@@ -330,6 +346,9 @@ export function useSimulationJob(options: UseSimulationJobOptions = {}) {
     detail,
     error,
     lastRequest,
+    pollCount,
+    elapsedSeconds,
+    maxAttempts,
     isSubmitting,
     isPolling,
     isBusy,

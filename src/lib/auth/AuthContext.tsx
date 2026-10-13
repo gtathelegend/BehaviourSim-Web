@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api/client";
+import { apiClient, getApiKey, setApiKey as setClientApiKey } from "@/lib/api/client";
 import { BehaviorSimAPIError } from "@/lib/api/errors";
 import type { AccountResponse } from "@/lib/api/types";
 
@@ -11,6 +11,8 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  apiKey: string | null;
+  setApiKey: (key: string | null) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -21,13 +23,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AccountResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKeyState] = useState<string | null>(null);
   const router = useRouter();
+
+  // Initialize apiKey from local client storage on mount
+  useEffect(() => {
+    setApiKeyState(getApiKey());
+  }, []);
 
   const refreshUser = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Calls GET /v1/account with credentials: "include"
+      // Calls GET /v1/account with credentials: "include" and Authorization header if API key set
       const data = await apiClient<AccountResponse>("/v1/account");
       setUser(data);
     } catch (err) {
@@ -46,6 +54,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setApiKey = useCallback(async (key: string | null) => {
+    setClientApiKey(key);
+    setApiKeyState(key);
+    await refreshUser();
+  }, [refreshUser]);
+
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
@@ -59,6 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Invalidate UI state regardless of server response
     } finally {
+      setClientApiKey(null);
+      setApiKeyState(null);
       setUser(null);
       setIsLoading(false);
       router.push("/");
@@ -72,6 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         isAuthenticated: !!user,
+        apiKey,
+        setApiKey,
         refreshUser,
         logout,
       }}

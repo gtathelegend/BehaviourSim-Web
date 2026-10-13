@@ -44,6 +44,9 @@ interface SimulationResultsProps {
   simulationId: string | null;
   error: JobError | null;
   selectedPreset: PresetResponse | null;
+  pollCount?: number;
+  elapsedSeconds?: number;
+  maxAttempts?: number;
   onRetry: () => void;
   onCheckStatus?: () => void;
 }
@@ -56,6 +59,9 @@ export function SimulationResults({
   simulationId,
   error,
   selectedPreset,
+  pollCount = 0,
+  elapsedSeconds = 0,
+  maxAttempts = 45,
   onRetry,
   onCheckStatus,
 }: SimulationResultsProps) {
@@ -132,7 +138,13 @@ export function SimulationResults({
   const isProcessing = isSubmitting || isQueued || isRunning;
   const isTimedOut = jobStatus === "timed_out";
   const isFailed = jobStatus === "failed";
-  const isCompleted = jobStatus === "completed" || completedSimulation !== null;
+  const isCompletedWithNoData =
+    !isProcessing &&
+    !isFailed &&
+    !isTimedOut &&
+    (jobStatus === "completed" || (simulation && simulation.status === "completed")) &&
+    (!simulation?.data || simulation.data.length === 0);
+  const isCompleted = (jobStatus === "completed" || completedSimulation !== null) && !isCompletedWithNoData;
 
   return (
     <Card className="border-border bg-surface shadow-xs min-h-[520px] flex flex-col">
@@ -287,10 +299,13 @@ export function SimulationResults({
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                 <span>STATUS: QUEUED</span>
               </div>
-              <h4 className="text-sm font-semibold text-foreground">Simulation queued</h4>
+              <h4 className="text-sm font-semibold text-foreground">Simulation Queued</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                Job accepted by the API and queued for worker execution. Polling for worker claim...
+                Job accepted by the API and queued for worker execution.
               </p>
+              <div className="text-[11px] text-foreground-muted font-mono pt-1">
+                Polling worker claim (attempt {pollCount || 1} of {maxAttempts} • {elapsedSeconds}s elapsed)
+              </div>
             </div>
 
             {activeId && (
@@ -321,10 +336,13 @@ export function SimulationResults({
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-spin" />
                 <span>STATUS: RUNNING</span>
               </div>
-              <h4 className="text-sm font-semibold text-foreground">Simulation running</h4>
+              <h4 className="text-sm font-semibold text-foreground">Simulation Running</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
                 Durable worker claimed the job. Executing Markov trajectory and synthesizing continuous telemetry...
               </p>
+              <div className="text-[11px] text-foreground-muted font-mono pt-1">
+                Execution in progress ({elapsedSeconds}s elapsed)
+              </div>
             </div>
 
             {activeId && (
@@ -354,7 +372,7 @@ export function SimulationResults({
                   <h4 className="font-semibold text-sm text-foreground">Simulation Still Processing</h4>
                   <p className="text-foreground-muted leading-relaxed">
                     {error?.message ||
-                      "Client polling timed out, but your simulation job is still safely processing on the server."}
+                      `Client polling reached timeout after ${elapsedSeconds || 60} seconds, but your simulation job is safely processing on the server.`}
                   </p>
                   {activeId && (
                     <div className="pt-1 font-mono text-[11px] text-foreground-muted flex items-center gap-1.5">
@@ -458,8 +476,58 @@ export function SimulationResults({
           </div>
         )}
 
-        {/* 6. Empty State (Before Any Run) */}
-        {!isProcessing && !isFailed && !isTimedOut && !completedSimulation && (
+        {/* 6. Completed With No Data */}
+        {isCompletedWithNoData && (
+          <div className="my-auto py-12 text-center space-y-4 max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-amber-500">
+              <AlertCircle className="w-6 h-6 text-amber-500" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated border border-border text-[11px] font-mono text-foreground-muted mb-1">
+                <span>STATUS: COMPLETED (0 RECORDS)</span>
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">Completed with No Records</h4>
+              <p className="text-xs text-foreground-muted leading-relaxed">
+                The simulation worker executed the requested run, but 0 interaction rows were generated. This can occur if the selected profile or initial state conditions terminated the sequence early.
+              </p>
+            </div>
+
+            {simulation && (
+              <div className="p-3.5 rounded-lg border border-border bg-surface-elevated/30 text-left space-y-2 text-xs">
+                <div className="flex justify-between text-foreground-muted">
+                  <span>Preset:</span>
+                  <span className="font-mono text-foreground">{simulation.preset}</span>
+                </div>
+                <div className="flex justify-between text-foreground-muted">
+                  <span>Requested Interactions:</span>
+                  <span className="font-mono text-foreground">{simulation.num_interactions}</span>
+                </div>
+                <div className="flex justify-between text-foreground-muted">
+                  <span>Actual Rows Returned:</span>
+                  <span className="font-mono text-foreground">0</span>
+                </div>
+                {simulation.seed !== null && simulation.seed !== undefined && (
+                  <div className="flex justify-between text-foreground-muted">
+                    <span>Seed:</span>
+                    <span className="font-mono text-foreground">{simulation.seed}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={onRetry}
+              className="px-3.5 py-1.5 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Try Again (New Job)</span>
+            </button>
+          </div>
+        )}
+
+        {/* 7. Empty State (Before Any Run) */}
+        {!isProcessing && !isFailed && !isTimedOut && !completedSimulation && !isCompletedWithNoData && (
           <div className="my-auto py-12 text-center space-y-4 max-w-md mx-auto">
             <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mx-auto text-foreground-muted">
               <Terminal className="w-6 h-6 text-foreground-muted/60" />

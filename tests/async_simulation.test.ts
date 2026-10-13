@@ -5,6 +5,8 @@ import {
   getSimulation,
   listSimulations,
   deleteSimulation,
+  getApiKey,
+  setApiKey,
 } from "../src/lib/api/client";
 import { BehaviorSimAPIError } from "../src/lib/api/errors";
 import type {
@@ -612,5 +614,56 @@ describe("Phase 17: Async API Client & Simulation Lifecycle", () => {
     assert.ok(capturedUrl.includes("sync=true"));
     assert.equal(result.simulation_id, "sim_sync_1");
     assert.equal(result.data.length, 1);
+  });
+
+  // Regression: API Key Bearer Authentication
+  it("21. attaches Authorization Bearer header when API key is configured", async () => {
+    let capturedHeaders: Record<string, string> = {};
+
+    globalThis.fetch = async (_url: RequestInfo | URL, init?: RequestInit) => {
+      capturedHeaders = (init?.headers || {}) as Record<string, string>;
+      return new Response(JSON.stringify(samplePendingResponse), { status: 202 });
+    };
+
+    try {
+      setApiKey("bs_live_test_api_key_123");
+      await createSimulation(sampleRequest);
+      assert.equal(capturedHeaders["Authorization"], "Bearer bs_live_test_api_key_123");
+    } finally {
+      setApiKey(null);
+    }
+  });
+
+  // Regression: Completed with 0 rows
+  it("22. correctly processes completed simulation with 0 generated records", async () => {
+    const emptyCompleted: SimulationDetailResponse = {
+      simulation_id: "sim_empty_0",
+      preset: "education",
+      num_interactions: 50,
+      seed: 42,
+      profile: "average",
+      initial_state: null,
+      status: "completed",
+      data: [],
+      metadata: {
+        behaviorsim_version: "1.0.1",
+        api_version: "1.0.0",
+        compute_ms: 15,
+        reproducible: true,
+      },
+      created_at: "2026-09-14T00:00:00Z",
+      started_at: "2026-09-14T00:00:01Z",
+      completed_at: "2026-09-14T00:00:02Z",
+      updated_at: "2026-09-14T00:00:02Z",
+    };
+
+    globalThis.fetch = async () => {
+      return new Response(JSON.stringify(emptyCompleted), { status: 200 });
+    };
+
+    const detail = await getSimulation("sim_empty_0");
+    assert.equal(detail.status, "completed");
+    assert.equal(detail.data?.length, 0);
+    assert.equal(detail.metadata?.compute_ms, 15);
   });
 });

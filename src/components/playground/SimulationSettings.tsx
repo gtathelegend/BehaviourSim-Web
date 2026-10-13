@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/Badge";
 import type { PresetResponse, SimulationRequest } from "@/lib/api/types";
 import type { JobStatus } from "@/lib/hooks/useSimulationJob";
-import { Sliders, Play, ChevronDown, ChevronRight, Dices, LogIn, Sparkles, Clock, RefreshCw } from "lucide-react";
+import { Sliders, Play, ChevronDown, ChevronRight, Dices, LogIn, Sparkles, Clock, RefreshCw, Key, Check } from "lucide-react";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 interface SimulationSettingsProps {
   presets: PresetResponse[];
@@ -39,6 +40,12 @@ export function SimulationSettings({
   const [initialState, setInitialState] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const { apiKey, setApiKey } = useAuth();
+  const [keyInput, setKeyInput] = useState<string>("");
+  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
+  const [isConnectingKey, setIsConnectingKey] = useState<boolean>(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
 
   const isBusy = isBusyProp ?? (isRunning || jobStatus === "submitting" || jobStatus === "queued" || jobStatus === "running");
 
@@ -357,24 +364,104 @@ export function SimulationSettings({
             </div>
           )}
 
-          {/* Execution CTA */}
-          <div className="pt-2">
+          {/* Execution CTA & Developer API Key Auth */}
+          <div className="pt-2 space-y-3">
             {isAuthenticated ? (
-              <button
-                type="submit"
-                disabled={isBusy || !selectedPreset}
-                className="w-full py-2.5 px-4 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 active:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed"
-              >
-                {getButtonContent()}
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="submit"
+                  disabled={isBusy || !selectedPreset}
+                  className="w-full py-2.5 px-4 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 active:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {getButtonContent()}
+                </button>
+                {apiKey && (
+                  <div className="flex items-center justify-between text-[11px] font-mono text-foreground-muted px-1">
+                    <span className="truncate">Active Key: {apiKey.slice(0, 10)}...</span>
+                    <button
+                      type="button"
+                      onClick={() => setApiKey(null)}
+                      className="text-xs text-foreground-muted hover:text-foreground underline transition-colors"
+                    >
+                      Disconnect Key
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
-              <Link
-                href="/login"
-                className="w-full py-2.5 px-4 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In to Run Simulation</span>
-              </Link>
+              <div className="space-y-2.5">
+                <Link
+                  href="/login"
+                  className="w-full py-2.5 px-4 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In to Run Simulation</span>
+                </Link>
+
+                <div className="pt-1 border-t border-border/60">
+                  {!showKeyInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyInput(true)}
+                      className="w-full py-1 text-center text-[11px] text-foreground-muted hover:text-accent font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Key className="w-3 h-3 text-accent" />
+                      <span>Use API Key (Developer Mode)</span>
+                    </button>
+                  ) : (
+                    <div className="p-3 rounded border border-border bg-surface-elevated/40 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-foreground flex items-center gap-1 text-[11px]">
+                          <Key className="w-3 h-3 text-accent" />
+                          <span>Connect API Key</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowKeyInput(false)}
+                          className="text-[10px] text-foreground-muted hover:text-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <input
+                        type="password"
+                        placeholder="bs_live_..."
+                        value={keyInput}
+                        onChange={(e) => setKeyInput(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs font-mono rounded border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      {keyError && (
+                        <p className="text-[10px] text-semantic-error">{keyError}</p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isConnectingKey || !keyInput.trim()}
+                        onClick={async () => {
+                          if (!keyInput.trim()) return;
+                          setIsConnectingKey(true);
+                          setKeyError(null);
+                          try {
+                            await setApiKey(keyInput.trim());
+                            setShowKeyInput(false);
+                          } catch (err) {
+                            setKeyError(err instanceof Error ? err.message : "Failed to connect API key.");
+                          } finally {
+                            setIsConnectingKey(false);
+                          }
+                        }}
+                        className="w-full py-1.5 px-3 rounded bg-surface-elevated hover:bg-surface-muted text-foreground border border-border text-xs font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {isConnectingKey ? (
+                          <RefreshCw className="w-3 h-3 animate-spin text-accent" />
+                        ) : (
+                          <Check className="w-3 h-3 text-semantic-success" />
+                        )}
+                        <span>{isConnectingKey ? "Verifying..." : "Apply API Key"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </form>

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx --test tests/**/*.test.ts"
+    "test": "npx --yes tsx --test tests/analysis.test.ts tests/async_simulation.test.ts tests/routes.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

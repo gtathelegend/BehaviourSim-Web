@@ -58,6 +58,9 @@ export default function PlaygroundPage() {
     simulationId,
     detail,
     error,
+    pollCount,
+    elapsedSeconds,
+    maxAttempts,
     isBusy,
     submitJob,
     checkStatus,
@@ -139,6 +142,9 @@ export default function PlaygroundPage() {
                 jobStatus={jobStatus}
                 simulationId={simulationId}
                 error={error}
+                pollCount={pollCount}
+                elapsedSeconds={elapsedSeconds}
+                maxAttempts={maxAttempts}
                 selectedPreset={selectedPreset}
                 onRetry={retry}
                 onCheckStatus={() => checkStatus()}
