@@ -13,7 +13,9 @@ import {
   ShieldAlert,
   Sliders,
   CheckCircle2,
+  Table,
 } from "lucide-react";
+import { DataPreviewTable } from "./DataPreviewTable";
 
 interface ResultsOverviewProps {
   simulation: SimulationResponse;
@@ -142,6 +144,28 @@ export function ResultsOverview({
           </div>
         </div>
       </div>
+
+      {/* Generated Interaction Records Table */}
+      {simulation.data && simulation.data.length > 0 && (
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Table className="w-4 h-4 text-accent" />
+              <span>Simulation Records</span>
+              <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
+                {simulation.data.length.toLocaleString()} rows
+              </Badge>
+            </div>
+            <span className="text-[11px] text-foreground-muted font-mono">
+              authoritative output
+            </span>
+          </div>
+          <DataPreviewTable
+            data={simulation.data}
+            totalInteractions={simulation.num_interactions}
+          />
+        </div>
+      )}
 
       {/* Scientific Statistical Disclaimer */}
       <div className="p-3.5 rounded-lg border border-border-subtle bg-surface-elevated/20 text-xs text-foreground-muted flex items-start gap-2.5">

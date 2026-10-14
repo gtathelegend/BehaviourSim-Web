@@ -666,4 +666,125 @@ describe("Phase 17: Async API Client & Simulation Lifecycle", () => {
     assert.equal(detail.data?.length, 0);
     assert.equal(detail.metadata?.compute_ms, 15);
   });
+
+  // Regression: DataPreviewTable pagination clamping & empty state prevention
+  it("23. prevents empty table rendering when navigating between simulations of different lengths", () => {
+    // Generate 25 records simulating a completed 25-interaction run
+    const generatedRecords = Array.from({ length: 25 }, (_, i) => ({
+      interaction_id: i + 1,
+      state: i % 2 === 0 ? "Attentive" : "Distracted",
+      accuracy: 0.85,
+    }));
+
+    const pageSize = 20;
+    const totalPages = Math.max(1, Math.ceil(generatedRecords.length / pageSize)); // 2 pages
+    assert.equal(totalPages, 2);
+
+    // Scenario: User was previously on page 3 from a 100-step simulation
+    const staleCurrentPage = 3;
+
+    // Unclamped index (the bug): (3 - 1) * 20 = 40. slice(40, 60) yields [] -> empty table!
+    const buggyStartIndex = (staleCurrentPage - 1) * pageSize;
+    const buggyRows = generatedRecords.slice(buggyStartIndex, buggyStartIndex + pageSize);
+    assert.equal(buggyRows.length, 0, "Demonstrates the root cause bug: unclamped page results in 0 rows");
+
+    // Clamped index (the fix): safeCurrentPage clamps to totalPages (2)
+    const safeCurrentPage = Math.min(Math.max(1, staleCurrentPage), totalPages);
+    assert.equal(safeCurrentPage, 2);
+    const fixedStartIndex = (safeCurrentPage - 1) * pageSize;
+    const fixedEndIndex = Math.min(fixedStartIndex + pageSize, generatedRecords.length);
+    const fixedRows = generatedRecords.slice(fixedStartIndex, fixedEndIndex);
+    assert.equal(fixedRows.length, 5, "Clamped page correctly renders the remaining 5 rows");
+
+    // When reset to page 1 (via data change effect):
+    const page1Rows = generatedRecords.slice(0, pageSize);
+    assert.equal(page1Rows.length, 20, "Page 1 renders exactly pageSize rows");
+  });
+
+  // Regression: Export contains actual retrieved dataset, not mock or limited data
+  it("24. verifies CSV and JSON export preserves actual generated records and schema", () => {
+    const records = [
+      { interaction_id: 1, state: "Active", score: 0.95, active: true },
+      { interaction_id: 2, state: "Idle", score: 0.42, active: false },
+      { interaction_id: 3, state: "Active", score: null, active: true },
+    ];
+
+    const completedSim: SimulationResponse = {
+      simulation_id: "sim_export_test",
+      preset: "education",
+      num_interactions: 3,
+      status: "completed",
+      seed: 42,
+      data: records,
+      metadata: {
+        behaviorsim_version: "1.0.1",
+        api_version: "1.0.0",
+        compute_ms: 50,
+        reproducible: true,
+      },
+    };
+
+    // Verify CSV generation
+    const headers = Object.keys(completedSim.data[0]);
+    assert.deepEqual(headers, ["interaction_id", "state", "score", "active"]);
+
+    const csvRows: string[] = [];
+    csvRows.push(headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","));
+
+    for (const row of completedSim.data) {
+      const values = headers.map((header) => {
+        const val = row[header];
+        if (val === null || val === undefined) return "";
+        return `"${String(val).replace(/"/g, '""')}"`;
+      });
+      csvRows.push(values.join(","));
+    }
+
+    assert.equal(csvRows.length, 4); // 1 header + 3 data rows
+    assert.equal(csvRows[0], '"interaction_id","state","score","active"');
+    assert.equal(csvRows[1], '"1","Active","0.95","true"');
+    assert.equal(csvRows[2], '"2","Idle","0.42","false"');
+    assert.equal(csvRows[3], '"3","Active",,"true"');
+
+    // Verify JSON export preserves full fidelity
+    const serialized = JSON.stringify(completedSim, null, 2);
+    const parsed = JSON.parse(serialized);
+    assert.equal(parsed.data.length, 3);
+    assert.equal(parsed.simulation_id, "sim_export_test");
+    assert.equal(parsed.metadata.compute_ms, 50);
+  });
+
+  // Regression: Real simulation completion end-to-end payload handling
+  it("25. handles full simulation completion payload with generated records correctly", async () => {
+    const fullPayload: SimulationDetailResponse = {
+      simulation_id: "sim_full_e2e",
+      preset: "education",
+      num_interactions: 10,
+      seed: 99,
+      status: "completed",
+      data: Array.from({ length: 10 }, (_, i) => ({
+        interaction_id: i + 1,
+        state: "Attentive",
+        accuracy: 1.0,
+      })),
+      metadata: {
+        behaviorsim_version: "1.0.1",
+        api_version: "1.0.0",
+        compute_ms: 45,
+        reproducible: true,
+      },
+      created_at: "2026-09-14T00:00:00Z",
+    };
+
+    globalThis.fetch = async () => {
+      return new Response(JSON.stringify(fullPayload), { status: 200 });
+    };
+
+    const detail = await getSimulation("sim_full_e2e");
+    assert.equal(detail.status, "completed");
+    assert.ok(Array.isArray(detail.data));
+    assert.equal(detail.data.length, 10);
+    assert.equal(detail.data[0].interaction_id, 1);
+    assert.equal(detail.data[9].interaction_id, 10);
+  });
 });

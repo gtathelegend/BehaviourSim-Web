@@ -182,6 +182,22 @@ export function SimulationResults({
                 <span>Overview</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab("table")}
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
+                  activeTab === "table"
+                    ? "bg-surface text-foreground font-semibold shadow-xs"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                <Table className="w-3.5 h-3.5 text-accent" />
+                <span>Data Table</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-surface-elevated text-[10px] font-mono font-medium text-foreground-muted">
+                  {completedSimulation.data.length.toLocaleString()}
+                </span>
+              </button>
+
               {hasStates && (
                 <button
                   type="button"
@@ -241,19 +257,6 @@ export function SimulationResults({
                   <span>Labels</span>
                 </button>
               )}
-
-              <button
-                type="button"
-                onClick={() => setActiveTab("table")}
-                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-medium transition-colors ${
-                  activeTab === "table"
-                    ? "bg-surface text-foreground font-semibold shadow-xs"
-                    : "text-foreground-muted hover:text-foreground"
-                }`}
-              >
-                <Table className="w-3.5 h-3.5" />
-                <span>Data Table</span>
-              </button>
 
               <button
                 type="button"
@@ -488,7 +491,7 @@ export function SimulationResults({
               </div>
               <h4 className="text-sm font-semibold text-foreground">Completed with No Records</h4>
               <p className="text-xs text-foreground-muted leading-relaxed">
-                The simulation worker executed the requested run, but 0 interaction rows were generated. This can occur if the selected profile or initial state conditions terminated the sequence early.
+                The simulation worker marked the run as completed, but 0 interaction rows were returned in the payload. The background worker may still be finalizing persistence, or the query returned an empty dataset.
               </p>
             </div>
 
@@ -515,14 +518,27 @@ export function SimulationResults({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={onRetry}
-              className="px-3.5 py-1.5 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Try Again (New Job)</span>
-            </button>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {onCheckStatus && (
+                <button
+                  type="button"
+                  onClick={onCheckStatus}
+                  className="px-3.5 py-1.5 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Refetch Simulation Records</span>
+                </button>
+              )}
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="px-3.5 py-1.5 rounded border border-border bg-surface hover:bg-surface-elevated text-foreground text-xs font-medium transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <span>Try Again (New Job)</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 

@@ -18,6 +18,13 @@ export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
     const custom = localStorage.getItem("behaviorsim_api_base_url");
     if (custom) return custom;
+    // When running locally in dev without an explicit env var, default to the local backend port 8000
+    if (
+      !process.env.NEXT_PUBLIC_API_BASE_URL &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ) {
+      return "http://localhost:8000";
+    }
   }
   return process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.behavioursim.vedaangsharma.in";
 }

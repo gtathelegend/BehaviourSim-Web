@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { ChevronLeft, ChevronRight, Layers } from "lucide-react";
 
@@ -13,17 +13,23 @@ export function DataPreviewTable({ data, totalInteractions }: DataPreviewTablePr
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
+  // Reset to first page whenever new dataset is loaded
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data]);
+
   if (!data || data.length === 0) {
     return (
-      <div className="py-12 text-center text-xs text-foreground-muted">
+      <div className="py-12 text-center text-xs text-foreground-muted border border-dashed border-border rounded-lg bg-surface-elevated/20">
         No interaction records available.
       </div>
     );
   }
 
   const columns = Object.keys(data[0]);
-  const totalPages = Math.ceil(data.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
+  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, data.length);
   const displayedRows = data.slice(startIndex, endIndex);
 
@@ -72,7 +78,7 @@ export function DataPreviewTable({ data, totalInteractions }: DataPreviewTablePr
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              disabled={safeCurrentPage === 1}
               className="p-1 rounded border border-border bg-surface-elevated text-foreground hover:bg-surface-muted disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title="Previous page"
               aria-label="Previous page"
@@ -80,12 +86,12 @@ export function DataPreviewTable({ data, totalInteractions }: DataPreviewTablePr
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <span className="font-mono text-[11px]">
-              Page {currentPage} of {totalPages}
+              Page {safeCurrentPage} of {totalPages}
             </span>
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              disabled={safeCurrentPage === totalPages}
               className="p-1 rounded border border-border bg-surface-elevated text-foreground hover:bg-surface-muted disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title="Next page"
               aria-label="Next page"
